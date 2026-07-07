@@ -21,7 +21,22 @@ const mysteries = [
 ];
 
 const shortMysteries = [mysteries[0]];
-const beadCount = 59;
+const rosaryBeads = [
+  { kind: "large", role: "incipit" },
+  ...Array.from({ length: 3 }, () => ({ kind: "small", role: "opening" })),
+  { kind: "large", role: "opening-glory" },
+  ...mysteries.flatMap((_, decadeIndex) => [
+    { kind: "large", role: "decade", decadeIndex },
+    ...Array.from({ length: 10 }, (_, hailIndex) => ({
+      kind: "small",
+      role: "hail-mary",
+      decadeIndex,
+      hailIndex,
+    })),
+  ]),
+  { kind: "large", role: "final" },
+];
+const beadCount = rosaryBeads.length;
 let steps = [];
 let currentIndex = 0;
 let isPlaying = false;
@@ -53,35 +68,64 @@ function createStep(type, title, text, beadIndex = null) {
 
 function buildSteps(useFullRosary = false) {
   const activeMysteries = useFullRosary ? mysteries : shortMysteries;
+  const finalBeadIndex = getFinalBeadIndex(activeMysteries.length);
   const nextSteps = [
     createStep("Intro", "Segno della Croce", prayers.sign, 0),
-    createStep("Invocazione", "Maria che scioglie i nodi", knotPrayer(), 1),
+    createStep("Invocazione", "Maria che scioglie i nodi", knotPrayer(), 0),
   ];
 
-  let beadIndex = 2;
   activeMysteries.forEach((mystery, decadeIndex) => {
-    nextSteps.push(createStep("Mistero", `${decadeIndex + 1}. ${mystery}`, `Meditiamo: ${mystery}. ${prayers.undoer}`, beadIndex));
-    beadIndex += 1;
-    nextSteps.push(createStep("Padre Nostro", "Padre Nostro", prayers.ourFather, beadIndex));
-    beadIndex += 1;
+    const decadeBeadIndex = getDecadeBeadIndex(decadeIndex);
+    nextSteps.push(
+      createStep(
+        "Mistero",
+        `${decadeIndex + 1}. ${mystery}`,
+        `Meditiamo: ${mystery}. ${prayers.undoer}`,
+        decadeBeadIndex,
+      ),
+    );
+    nextSteps.push(createStep("Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex));
 
     for (let hailIndex = 1; hailIndex <= 10; hailIndex += 1) {
-      nextSteps.push(createStep("Ave Maria", `Ave Maria ${hailIndex} / 10`, prayers.hailMary, beadIndex));
-      beadIndex += 1;
+      nextSteps.push(
+        createStep(
+          "Ave Maria",
+          `Ave Maria ${hailIndex} / 10`,
+          prayers.hailMary,
+          getHailMaryBeadIndex(decadeIndex, hailIndex - 1),
+        ),
+      );
     }
 
-    nextSteps.push(createStep("Gloria", "Gloria al Padre", prayers.glory, beadIndex));
-    beadIndex += 1;
-    nextSteps.push(createStep("Fatima", "Preghiera di Fatima", prayers.fatima, beadIndex));
-    beadIndex += 1;
+    nextSteps.push(createStep("Gloria", "Gloria al Padre", prayers.glory, finalBeadIndex));
+    nextSteps.push(createStep("Fatima", "Preghiera di Fatima", prayers.fatima, finalBeadIndex));
   });
 
-  nextSteps.push(createStep("Finale", "Affidamento", "Maria che scioglie i nodi, resta con noi e guidaci al tuo Figlio Gesù. Amen.", Math.min(beadIndex, beadCount - 1)));
+  nextSteps.push(
+    createStep(
+      "Finale",
+      "Affidamento",
+      "Maria che scioglie i nodi, resta con noi e guidaci al tuo Figlio Gesù. Amen.",
+      finalBeadIndex,
+    ),
+  );
   return nextSteps;
 }
 
+function getDecadeBeadIndex(decadeIndex) {
+  return 5 + decadeIndex * 11;
+}
+
+function getHailMaryBeadIndex(decadeIndex, hailIndex) {
+  return getDecadeBeadIndex(decadeIndex) + 1 + hailIndex;
+}
+
+function getFinalBeadIndex(activeDecadeCount) {
+  return Math.min(getDecadeBeadIndex(activeDecadeCount), beadCount - 1);
+}
+
 function knotPrayer() {
-  const knot = knotInput.value.trim();
+  const knot = knotInput?.value.trim();
   if (!knot) {
     return prayers.undoer;
   }
@@ -100,16 +144,27 @@ function renderBeads() {
   for (let index = 0; index < beadCount; index += 1) {
     const angle = -92 + index * (360 / beadCount);
     const bead = document.createElement("button");
-    const isMajor = index === 0 || index === 1 || index % 11 === 2;
+    const isMajor = rosaryBeads[index].kind === "large";
     const transform = `rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)`;
     bead.className = `bead${isMajor ? " major" : ""}`;
     bead.type = "button";
     bead.style.setProperty("--bead-transform", transform);
     bead.style.transform = transform;
-    bead.setAttribute("aria-label", `Grano ${index + 1}`);
+    bead.setAttribute("aria-label", getBeadLabel(index));
     bead.addEventListener("click", () => jumpToBead(index));
     ring.appendChild(bead);
   }
+}
+
+function getBeadLabel(index) {
+  const bead = rosaryBeads[index];
+  if (bead.role === "decade") {
+    return `Grano grande, mistero ${bead.decadeIndex + 1} e Padre Nostro`;
+  }
+  if (bead.role === "hail-mary") {
+    return `Grano piccolo, Ave Maria ${bead.hailIndex + 1}, decina ${bead.decadeIndex + 1}`;
+  }
+  return `Grano ${index + 1}`;
 }
 
 function refreshSteps(keepIndex = false) {
