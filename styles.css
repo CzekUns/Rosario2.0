@@ -783,20 +783,24 @@ select:focus {
 }
 
 .rosary-layout-dedicated {
-  grid-template-columns: minmax(20rem, 0.95fr) minmax(20rem, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  width: min(46rem, 100%);
+  margin-inline: auto;
 }
 
 .rosary-stage-dedicated {
-  min-height: clamp(31rem, 68vh, 45rem);
+  min-height: clamp(25rem, 58svh, 38rem);
 }
 
 .rosary-stage-dedicated .rosary-ring {
-  width: min(33rem, 82vw);
-  height: min(33rem, 82vw);
+  width: min(31rem, 84vw);
+  height: min(31rem, 84vw);
 }
 
 .prayer-card-dedicated {
   min-height: auto;
+  padding-bottom: 1.2rem;
 }
 
 .prayer-card-dedicated h2 {
@@ -810,21 +814,29 @@ select:focus {
   bottom: max(0.75rem, env(safe-area-inset-bottom));
   z-index: 50;
   display: grid;
-  grid-template-columns: 1.25fr 1fr 1fr 1fr;
-  gap: 0.45rem;
-  max-width: 44rem;
+  grid-template-columns: 1.45fr 1fr 1fr;
+  gap: 0.5rem;
+  max-width: 32rem;
   margin: 0 auto;
   padding: 0.55rem;
   border: 1px solid rgba(141, 95, 26, 0.18);
-  border-radius: 999px;
+  border-radius: 28px;
   background: rgba(255, 247, 234, 0.84);
   box-shadow: 0 18px 60px rgba(34, 21, 15, 0.26);
   backdrop-filter: blur(20px);
 }
 
 .mobile-player button {
-  min-height: 3.15rem;
-  padding-inline: 0.8rem;
+  min-height: 3.3rem;
+  padding-inline: 0.75rem;
+}
+
+.mobile-player #resetButton {
+  grid-column: 1 / -1;
+  min-height: 2.65rem;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
 }
 
 @media (max-width: 860px) {
@@ -917,7 +929,7 @@ select:focus {
   }
 
   .rosary-stage-dedicated {
-    min-height: min(31rem, 66svh);
+    min-height: min(30rem, 58svh);
     border-radius: 26px;
   }
 
@@ -998,7 +1010,7 @@ select:focus {
   }
 
   .mobile-player {
-    grid-template-columns: 1.45fr 0.9fr 0.9fr 0.9fr;
+    grid-template-columns: 1.4fr 1fr 1fr;
     border-radius: 24px;
   }
 
@@ -1025,7 +1037,7 @@ select:focus {
   }
 
   .rosary-stage-dedicated {
-    min-height: 27rem;
+    min-height: 25.5rem;
   }
 
   .rosary-stage-dedicated .rosary-ring {
