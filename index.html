@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Rosario 2.0, una webapp statica per accompagnare la recita del Rosario con audio, grani interattivi e meditazioni."
+    />
+    <title>Rosario 2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="grain-overlay"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="Rosario 2.0 home">
+        <span class="brand-mark">✦</span>
+        <span>Rosario 2.0</span>
+      </a>
+      <nav class="nav" aria-label="Sezioni principali">
+        <a href="#home">Home</a>
+        <a href="#app">App</a>
+        <a href="#rosario">Rosario</a>
+      </nav>
+      <button class="ghost-button" id="openAppButton" type="button">Entra</button>
+    </header>
+
+    <main>
+      <section class="hero" id="home">
+        <div class="hero-copy">
+          <p class="eyebrow">prototipo static site</p>
+          <h1>Una corona digitale, lenta come una candela accesa.</h1>
+          <p class="hero-text">
+            Una prima versione semplice per recitare il Rosario, con guida vocale
+            del browser, grani sincronizzati e una modalità test ispirata a Maria
+            che scioglie i nodi.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" id="startJourneyButton" type="button">
+              Apri il Rosario
+            </button>
+            <a class="secondary-link" href="#app">Guarda le sezioni</a>
+          </div>
+        </div>
+
+        <div class="hero-card" aria-label="Anteprima della corona">
+          <div class="halo"></div>
+          <div class="mini-rosary" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span>
+          </div>
+          <div class="hero-orb">
+            <span>Maria</span>
+            <strong>sciogli i nodi</strong>
+          </div>
+          <p>Login con Clerk previsto nella prossima fase.</p>
+        </div>
+      </section>
+
+      <section class="app-shell" id="app">
+        <aside class="sidebar" aria-label="Menu applicazione">
+          <div>
+            <p class="eyebrow">dashboard</p>
+            <h2>Spazi dell’app</h2>
+          </div>
+          <button class="section-tab active" data-section="rosario" type="button">
+            <span>01</span> Rosario
+          </button>
+          <button class="section-tab" data-section="misteri" type="button">
+            <span>02</span> Misteri
+          </button>
+          <button class="section-tab" data-section="intenzioni" type="button">
+            <span>03</span> Intenzioni
+          </button>
+          <button class="section-tab" data-section="diario" type="button">
+            <span>04</span> Diario
+          </button>
+          <button class="section-tab" data-section="profilo" type="button">
+            <span>05</span> Profilo
+          </button>
+        </aside>
+
+        <section class="workspace">
+          <article class="panel active" id="panel-rosario">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">modalità test</p>
+                <h2>Rosario guidato</h2>
+              </div>
+              <span class="status-pill" id="speechSupport">Audio browser</span>
+            </div>
+
+            <div class="rosary-layout" id="rosario">
+              <div class="rosary-stage">
+                <div class="moon"></div>
+                <div class="rosary-ring" id="rosaryRing" aria-label="Corona del Rosario"></div>
+                <div class="cross" aria-hidden="true">
+                  <span></span>
+                  <span></span>
+                </div>
+                <div class="center-medallion">
+                  <span id="currentStepType">Pronto</span>
+                  <strong id="currentStepTitle">Maria che scioglie i nodi</strong>
+                  <small id="currentStepCount">0 / 0</small>
+                </div>
+              </div>
+
+              <div class="prayer-card">
+                <div class="card-topline">
+                  <span id="modeLabel">Rosario breve</span>
+                  <span id="durationEstimate">~4 min demo</span>
+                </div>
+                <h3 id="prayerTitle">Premi play per iniziare</h3>
+                <p id="prayerText">
+                  La recita avanza automaticamente: ogni grano si illumina mentre
+                  la sintesi vocale legge la preghiera.
+                </p>
+
+                <label class="field">
+                  <span>Il nodo da affidare</span>
+                  <input
+                    id="knotInput"
+                    type="text"
+                    placeholder="es. una decisione, una paura, una persona..."
+                  />
+                </label>
+
+                <div class="progress-wrap" aria-label="Avanzamento Rosario">
+                  <div class="progress-bar">
+                    <span id="progressFill"></span>
+                  </div>
+                  <span id="progressLabel">0%</span>
+                </div>
+
+                <div class="controls">
+                  <button class="primary-button" id="playButton" type="button">Play</button>
+                  <button class="ghost-button" id="pauseButton" type="button">Pausa</button>
+                  <button class="ghost-button" id="nextButton" type="button">Avanti</button>
+                  <button class="ghost-button" id="resetButton" type="button">Reset</button>
+                </div>
+
+                <div class="settings-row">
+                  <label>
+                    <input id="fullRosaryToggle" type="checkbox" />
+                    Rosario completo
+                  </label>
+                  <label>
+                    Voce
+                    <select id="voiceSelect" aria-label="Seleziona voce"></select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel" id="panel-misteri">
+            <p class="eyebrow">placeholder</p>
+            <h2>Misteri</h2>
+            <p>
+              Qui arriverà il calendario dei misteri, con selezione automatica per
+              giorno della settimana e testi meditativi personalizzabili.
+            </p>
+          </article>
+
+          <article class="panel" id="panel-intenzioni">
+            <p class="eyebrow">placeholder</p>
+            <h2>Intenzioni</h2>
+            <p>
+              Uno spazio per salvare intenzioni, “nodi” e grazie ricevute. In fase
+              login potrà essere collegato al profilo utente.
+            </p>
+          </article>
+
+          <article class="panel" id="panel-diario">
+            <p class="eyebrow">placeholder</p>
+            <h2>Diario</h2>
+            <p>
+              Storico delle recite, streak dolce e zero gamification aggressiva:
+              più ritmo spirituale, meno app che ti sgrida.
+            </p>
+          </article>
+
+          <article class="panel" id="panel-profilo">
+            <p class="eyebrow">placeholder</p>
+            <h2>Profilo</h2>
+            <p>
+              Area pronta per Clerk: accesso, preferenze voce, lingua, tema e
+              sincronizzazione cloud.
+            </p>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Rosario 2.0 · static prototype</span>
+      <span>Fonti di struttura: Vatican.va e Radio Maria, vedi README.</span>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

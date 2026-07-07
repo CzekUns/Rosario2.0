@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: rosario-2-static
+    runtime: static
+    buildCommand: echo "Static site"
+    staticPublishPath: .
