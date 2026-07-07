@@ -6,7 +6,8 @@ Prototipo statico di una webapp per recitare il Rosario con una corona interatti
 
 - Homepage provvisoria senza login.
 - Area app con sezioni placeholder: Rosario, Misteri, Intenzioni, Diario, Profilo.
-- Sezione Rosario funzionante con autoplay tramite Web Speech API.
+- Pagina dedicata `rosario.html` ottimizzata per telefono.
+- Rosario funzionante con autoplay tramite Web Speech API.
 - Modalità demo breve e toggle per Rosario completo.
 - Struttura pronta per essere pubblicata come Static Site su Render.
 

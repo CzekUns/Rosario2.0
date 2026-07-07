@@ -89,8 +89,13 @@ function knotPrayer() {
 }
 
 function renderBeads() {
+  if (!ring) {
+    return;
+  }
+
   ring.innerHTML = "";
-  const radius = 250;
+  const ringSize = Math.min(ring.clientWidth || 500, ring.clientHeight || 500);
+  const radius = Math.max(118, ringSize / 2 - 28);
 
   for (let index = 0; index < beadCount; index += 1) {
     const angle = -92 + index * (360 / beadCount);
@@ -108,9 +113,14 @@ function renderBeads() {
 }
 
 function refreshSteps(keepIndex = false) {
-  steps = buildSteps(fullRosaryToggle.checked);
-  modeLabel.textContent = fullRosaryToggle.checked ? "Rosario completo" : "Rosario breve";
-  durationEstimate.textContent = fullRosaryToggle.checked ? "~22 min stimati" : "~4 min demo";
+  if (!ring) {
+    return;
+  }
+
+  const useFullRosary = Boolean(fullRosaryToggle?.checked);
+  steps = buildSteps(useFullRosary);
+  modeLabel.textContent = useFullRosary ? "Rosario completo" : "Rosario breve";
+  durationEstimate.textContent = useFullRosary ? "~22 min stimati" : "~4 min demo";
   if (!keepIndex) {
     currentIndex = 0;
   }
@@ -119,6 +129,10 @@ function refreshSteps(keepIndex = false) {
 }
 
 function updateUi() {
+  if (!steps.length) {
+    return;
+  }
+
   const currentStep = steps[currentIndex];
   const progress = steps.length <= 1 ? 0 : Math.round((currentIndex / (steps.length - 1)) * 100);
 
@@ -138,7 +152,9 @@ function updateUi() {
 
 function speakCurrent() {
   if (!("speechSynthesis" in window)) {
-    speechSupport.textContent = "Audio non disponibile";
+    if (speechSupport) {
+      speechSupport.textContent = "Audio non disponibile";
+    }
     return;
   }
 
@@ -211,8 +227,14 @@ function jumpToBead(beadIndex) {
 }
 
 function loadVoices() {
+  if (!voiceSelect) {
+    return;
+  }
+
   if (!("speechSynthesis" in window)) {
-    speechSupport.textContent = "Solo testo";
+    if (speechSupport) {
+      speechSupport.textContent = "Solo testo";
+    }
     voiceSelect.innerHTML = "<option>Audio non supportato</option>";
     voiceSelect.disabled = true;
     return;
@@ -250,20 +272,31 @@ document.querySelectorAll(".section-tab").forEach((tab) => {
   });
 });
 
-document.querySelector("#startJourneyButton").addEventListener("click", () => {
-  document.querySelector("#app").scrollIntoView({ behavior: "smooth" });
+const startJourneyButton = document.querySelector("#startJourneyButton");
+if (startJourneyButton?.tagName === "BUTTON") {
+  startJourneyButton.addEventListener("click", () => {
+    document.querySelector("#app")?.scrollIntoView({ behavior: "smooth" });
+  });
+}
+
+document.querySelector("#openAppButton")?.addEventListener("click", () => {
+  document.querySelector("#app")?.scrollIntoView({ behavior: "smooth" });
 });
 
-document.querySelector("#openAppButton").addEventListener("click", () => {
-  document.querySelector("#app").scrollIntoView({ behavior: "smooth" });
-});
+playButton?.addEventListener("click", play);
+pauseButton?.addEventListener("click", pause);
+nextButton?.addEventListener("click", next);
+resetButton?.addEventListener("click", reset);
+fullRosaryToggle?.addEventListener("change", () => refreshSteps());
+knotInput?.addEventListener("change", () => refreshSteps(true));
 
-playButton.addEventListener("click", play);
-pauseButton.addEventListener("click", pause);
-nextButton.addEventListener("click", next);
-resetButton.addEventListener("click", reset);
-fullRosaryToggle.addEventListener("change", () => refreshSteps());
-knotInput.addEventListener("change", () => refreshSteps(true));
+window.addEventListener("resize", () => {
+  if (!ring) {
+    return;
+  }
+  renderBeads();
+  updateUi();
+});
 
 if ("speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = loadVoices;

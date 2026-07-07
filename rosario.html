@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Rosario guidato mobile-first con corona interattiva, testo e sintesi vocale."
+    />
+    <title>Rosario guidato · Rosario 2.0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="rosary-page">
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="grain-overlay"></div>
+
+    <header class="topbar rosary-topbar">
+      <a class="brand" href="index.html" aria-label="Torna alla home">
+        <span class="brand-mark">✦</span>
+        <span>Rosario 2.0</span>
+      </a>
+      <nav class="nav" aria-label="Navigazione Rosario">
+        <a href="index.html">Home</a>
+        <a href="index.html#app">Sezioni</a>
+      </nav>
+      <span class="status-pill" id="speechSupport">Audio browser</span>
+    </header>
+
+    <main class="rosary-focus" id="rosario">
+      <section class="rosary-intro">
+        <p class="eyebrow">recita guidata</p>
+        <h1>Rosario</h1>
+        <p>
+          Versione mobile-first: corona grande, testo comodo da leggere, audio
+          del browser e comandi fissi in basso.
+        </p>
+      </section>
+
+      <section class="rosary-layout rosary-layout-dedicated">
+        <div class="rosary-stage rosary-stage-dedicated">
+          <div class="moon"></div>
+          <div class="rosary-ring" id="rosaryRing" aria-label="Corona del Rosario"></div>
+          <div class="cross" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </div>
+          <div class="center-medallion">
+            <span id="currentStepType">Pronto</span>
+            <strong id="currentStepTitle">Maria che scioglie i nodi</strong>
+            <small id="currentStepCount">0 / 0</small>
+          </div>
+        </div>
+
+        <article class="prayer-card prayer-card-dedicated">
+          <div class="card-topline">
+            <span id="modeLabel">Rosario breve</span>
+            <span id="durationEstimate">~4 min demo</span>
+          </div>
+          <h2 id="prayerTitle">Premi play per iniziare</h2>
+          <p id="prayerText">
+            La recita avanza automaticamente: ogni grano si illumina mentre la
+            sintesi vocale legge la preghiera.
+          </p>
+
+          <label class="field">
+            <span>Il nodo da affidare</span>
+            <input
+              id="knotInput"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              placeholder="es. una decisione, una paura..."
+            />
+          </label>
+
+          <div class="progress-wrap" aria-label="Avanzamento Rosario">
+            <div class="progress-bar">
+              <span id="progressFill"></span>
+            </div>
+            <span id="progressLabel">0%</span>
+          </div>
+
+          <div class="settings-row">
+            <label>
+              <input id="fullRosaryToggle" type="checkbox" />
+              Rosario completo
+            </label>
+            <label>
+              Voce
+              <select id="voiceSelect" aria-label="Seleziona voce"></select>
+            </label>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <nav class="mobile-player" aria-label="Controlli Rosario">
+      <button class="primary-button" id="playButton" type="button">Play</button>
+      <button class="ghost-button" id="pauseButton" type="button">Pausa</button>
+      <button class="ghost-button" id="nextButton" type="button">Avanti</button>
+      <button class="ghost-button" id="resetButton" type="button">Reset</button>
+    </nav>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
