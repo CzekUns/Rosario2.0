@@ -1,15 +1,18 @@
 # Rosario 2.0
 
-Web app statica e installabile per accompagnare la recita del Rosario. Mostra il testo a sinistra e un filo di grani verticale, scorrevole al tocco, a destra.
+Web app statica e installabile per accompagnare la recita del Rosario. Mostra il testo a sinistra e, a destra, un filo di grani da reggere e far avanzare con il pollice.
 
 ## Funzioni
 
 - Misteri gaudiosi, luminosi, dolorosi e gloriosi.
 - Selezione automatica dei misteri in base al giorno, con scelta manuale.
 - Rosario completo oppure singola decina selezionabile.
+- Grani grandi con zona di presa, risposta alla pressione e vibrazione sui dispositivi compatibili.
+- Avanzamento strettamente sequenziale: il filo non funziona come menu e non consente di saltare preghiere.
 - Codici accanto ai grani nel formato `Mis.5-7`.
+- Tre modalità: audio automatico, audio con avanzamento gestito dall’utente e recita senza audio.
 - Guida tramite Web Speech API con scelta automatica della voce italiana migliore disponibile.
-- Ritmo regolabile, pausa/ripresa e avanzamento automatico.
+- Ritmo regolabile e pausa/ripresa.
 - Salvataggio locale di avanzamento e preferenze, senza account.
 - Intenzione personale facoltativa, non salvata e letta soltanto su richiesta.
 - Web app installabile e interfaccia disponibile offline dopo la prima apertura.
@@ -23,6 +26,7 @@ Web app statica e installabile per accompagnare la recita del Rosario. Mostra il
 - `home.js`: contenuti dinamici della pagina iniziale.
 - `sw.js` e `manifest.webmanifest`: installazione e uso offline.
 - `tests/rosary-data.test.js`: controlli sulla sequenza e sulla mappatura dei grani.
+- `tests/reader-contract.test.js`: controlli sulle modalità e sull’avanzamento sequenziale.
 
 ## Sviluppo locale
 
@@ -38,6 +42,7 @@ Per verificare dati e sequenza:
 
 ```bash
 node tests/rosary-data.test.js
+node tests/reader-contract.test.js
 ```
 
 ## Deploy su Render

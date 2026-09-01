@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#17263a" />
     <meta
       name="description"
-      content="Rosario guidato con misteri del giorno, grani interattivi, avanzamento salvato e guida vocale."
+      content="Rosario guidato con grani da far scorrere sotto il pollice, tre modalità di recita e avanzamento salvato."
     />
     <title>Rosario guidato · Rosario 2.0</title>
     <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
@@ -61,7 +61,7 @@
             </div>
 
             <details class="prayer-settings">
-              <summary>Scelta dei misteri, voce e intenzione</summary>
+              <summary>Misteri, dettagli e intenzione</summary>
               <div class="settings-content">
                 <div class="settings-grid">
                   <label class="field compact-field">
@@ -88,14 +88,14 @@
                     <select id="shortMysterySelect" aria-label="Scegli il mistero della decina"></select>
                   </label>
 
-                  <label class="field compact-field">
+                  <label class="field compact-field" data-audio-setting>
                     <span>Voce</span>
                     <select id="voiceSelect" aria-label="Seleziona la voce">
                       <option value="__auto__">Migliore disponibile</option>
                     </select>
                   </label>
 
-                  <label class="field compact-field">
+                  <label class="field compact-field" data-audio-setting>
                     <span>Ritmo</span>
                     <select id="speechRateSelect" aria-label="Velocità della voce">
                       <option value="0.82">Molto lento</option>
@@ -118,7 +118,7 @@
                   </label>
                   <label class="checkbox-field">
                     <input id="speakIntentionToggle" type="checkbox" />
-                    <span>Inseriscilo nella recita con la voce del dispositivo</span>
+                    <span>Inseriscilo nella sequenza della recita</span>
                   </label>
                 </div>
 
@@ -129,33 +129,41 @@
             </details>
           </div>
 
-          <nav class="reader-player" aria-label="Controlli della recita">
-            <button class="player-side" id="previousButton" type="button" aria-label="Preghiera precedente">
-              <span aria-hidden="true">‹</span>
-              <small>Indietro</small>
-            </button>
-            <button class="play-button" id="playPauseButton" type="button" aria-label="Ascolta la preghiera">
-              <span class="play-icon" aria-hidden="true">▶</span>
-              <strong id="playButtonLabel">Ascolta</strong>
-            </button>
-            <button class="player-side" id="nextButton" type="button" aria-label="Preghiera successiva">
-              <span aria-hidden="true">›</span>
-              <small>Avanti</small>
-            </button>
-          </nav>
+          <div class="reader-player" aria-label="Modalità e controlli della recita">
+            <label class="interaction-mode-field" for="interactionModeSelect">
+              <span>Modalità</span>
+              <select id="interactionModeSelect">
+                <option value="automatic">Audio automatico</option>
+                <option value="guided">Audio gestito da me</option>
+                <option value="silent">Senza audio</option>
+              </select>
+            </label>
+            <div class="player-action-row">
+              <p id="interactionHint">Avvia la voce: la corona seguirà la recita.</p>
+              <button class="play-button" id="playPauseButton" type="button" aria-label="Avvia la recita automatica">
+                <span class="play-icon" aria-hidden="true">▶</span>
+                <strong id="playButtonLabel">Avvia</strong>
+              </button>
+            </div>
+          </div>
         </article>
 
         <aside class="bead-stage" aria-label="Grani del Rosario">
           <div class="strand-topline">
-            <span>Grani</span>
+            <span>Presa</span>
             <strong id="currentStepCount">1 di 1</strong>
+          </div>
+          <div class="grip-zone" aria-hidden="true">
+            <span></span>
+            <small id="gripInstruction">Appoggia il pollice</small>
           </div>
           <div
             class="rosary-strand"
             id="rosaryRing"
-            role="list"
+            role="button"
             tabindex="0"
-            aria-label="Scorri verticalmente i grani del Rosario"
+            aria-roledescription="filo del Rosario"
+            aria-label="Appoggia il pollice sul grano attivo"
           ></div>
           <div class="strand-caption" aria-live="polite">
             <span>Ora</span>

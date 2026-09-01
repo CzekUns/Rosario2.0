@@ -23,5 +23,7 @@ jobs:
           node --check app.js
           node --check pwa.js
           node --check sw.js
-      - name: Test rosary sequence
-        run: node tests/rosary-data.test.js
+      - name: Test rosary sequence and reader interaction
+        run: |
+          node tests/rosary-data.test.js
+          node tests/reader-contract.test.js

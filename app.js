@@ -2,6 +2,7 @@
 
 const AUTO_VOICE = "__auto__";
 const STORAGE_KEY = "rosario2.reader.v2";
+const INTERACTION_MODES = ["automatic", "guided", "silent"];
 const data = window.RosaryData;
 
 const elements = {
@@ -20,8 +21,11 @@ const elements = {
   playPauseButton: document.querySelector("#playPauseButton"),
   playButtonLabel: document.querySelector("#playButtonLabel"),
   playIcon: document.querySelector(".play-icon"),
-  previousButton: document.querySelector("#previousButton"),
-  nextButton: document.querySelector("#nextButton"),
+  interactionModeSelect: document.querySelector("#interactionModeSelect"),
+  interactionHint: document.querySelector("#interactionHint"),
+  gripInstruction: document.querySelector("#gripInstruction"),
+  beadStage: document.querySelector(".bead-stage"),
+  audioSettings: document.querySelectorAll("[data-audio-setting]"),
   resetButton: document.querySelector("#resetButton"),
   fullRosaryToggle: document.querySelector("#fullRosaryToggle"),
   mysterySetSelect: document.querySelector("#mysterySetSelect"),
@@ -42,6 +46,12 @@ const savedState = readSavedState();
 const shouldRestart = query.get("restart") === "1";
 const querySet = data.mysterySets[query.get("set")] ? query.get("set") : query.get("set") === "auto" ? "auto" : null;
 const queryMode = ["full", "short"].includes(query.get("mode")) ? query.get("mode") : null;
+const queryInteractionMode = INTERACTION_MODES.includes(query.get("use"))
+  ? query.get("use")
+  : null;
+const savedInteractionMode = INTERACTION_MODES.includes(savedState?.interactionMode)
+  ? savedState.interactionMode
+  : "automatic";
 
 const state = {
   setChoice: querySet || savedState?.setChoice || "auto",
@@ -50,6 +60,7 @@ const state = {
   currentIndex: 0,
   voiceName: savedState?.voiceName || AUTO_VOICE,
   rate: String(savedState?.rate || "0.88"),
+  interactionMode: queryInteractionMode || savedInteractionMode,
   completedAt: shouldRestart ? null : savedState?.completedAt || null,
 };
 
@@ -60,9 +71,11 @@ let speechStatus = "idle";
 let activeSpeechRun = 0;
 let activeUtterance = null;
 let continuationTimer = null;
-let railScrollTimer = null;
-let railReleaseTimer = null;
-let suppressRailSelection = false;
+let gripGesture = null;
+let settleTimer = null;
+let guidedStepHeardId = null;
+
+const GRIP_THRESHOLD = 34;
 
 function readSavedState() {
   try {
@@ -88,6 +101,7 @@ function saveState() {
         totalSteps: model.steps.length,
         voiceName: state.voiceName,
         rate: state.rate,
+        interactionMode: state.interactionMode,
         completedAt: state.completedAt,
         updatedAt: new Date().toISOString(),
       }),
@@ -146,27 +160,35 @@ function rebuildRosary({ keepStepId = null, restoreSaved = false, resetProgress 
 function renderBeads() {
   elements.ring.innerHTML = "";
 
+  const startSpacer = document.createElement("span");
+  startSpacer.className = "strand-spacer";
+  startSpacer.setAttribute("aria-hidden", "true");
+  elements.ring.appendChild(startSpacer);
+
   model.beads.forEach((bead, beadIndex) => {
     const row = document.createElement("div");
     const code = document.createElement("span");
-    const button = document.createElement("button");
+    const beadShape = document.createElement("span");
 
     row.className = "bead-row";
     row.dataset.beadIndex = String(beadIndex);
-    row.setAttribute("role", "listitem");
+    row.setAttribute("aria-hidden", "true");
 
     code.className = "bead-code";
     code.textContent = data.getBeadCode(bead);
     code.dataset.defaultCode = code.textContent;
 
-    button.className = `bead${bead.kind === "large" ? " major" : ""}`;
-    button.type = "button";
-    button.setAttribute("aria-label", data.getBeadLabel(bead));
-    button.addEventListener("click", () => jumpToBead(beadIndex));
+    beadShape.className = `bead${bead.kind === "large" ? " major" : ""}`;
+    beadShape.setAttribute("aria-hidden", "true");
 
-    row.append(code, button);
+    row.append(code, beadShape);
     elements.ring.appendChild(row);
   });
+
+  const endSpacer = document.createElement("span");
+  endSpacer.className = "strand-spacer";
+  endSpacer.setAttribute("aria-hidden", "true");
+  elements.ring.appendChild(endSpacer);
 }
 
 function getLastStepIndexForBead(beadIndex) {
@@ -195,19 +217,16 @@ function updateUi({ syncRail = false, announce = false } = {}) {
   elements.durationEstimate.textContent = state.full ? "circa 25 minuti" : "circa 8 minuti";
   elements.setLabel.textContent = model.set.label;
   elements.shortMysteryField.hidden = state.full;
-  elements.previousButton.disabled = state.currentIndex === 0;
-  elements.nextButton.disabled = state.currentIndex === model.steps.length - 1;
 
   elements.ring.querySelectorAll(".bead-row").forEach((row) => {
     const beadIndex = Number(row.dataset.beadIndex);
-    const button = row.querySelector(".bead");
     const code = row.querySelector(".bead-code");
     const isActive = beadIndex === step.beadIndex;
     const isDone = getLastStepIndexForBead(beadIndex) < state.currentIndex;
 
     row.classList.toggle("active", isActive);
     row.classList.toggle("done", isDone);
-    button.setAttribute("aria-current", isActive ? "step" : "false");
+    row.setAttribute("aria-hidden", isActive ? "false" : "true");
     code.textContent = isActive ? step.code : code.dataset.defaultCode;
   });
 
@@ -229,48 +248,14 @@ function syncRailToBead(beadIndex) {
   const nextTop = row.offsetTop - (elements.ring.clientHeight - row.clientHeight) / 2;
   if (Math.abs(elements.ring.scrollTop - nextTop) < 2) return;
 
-  suppressRailSelection = true;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   elements.ring.scrollTo({ top: nextTop, behavior: reduceMotion ? "auto" : "smooth" });
-  window.clearTimeout(railReleaseTimer);
-  railReleaseTimer = window.setTimeout(() => {
-    suppressRailSelection = false;
-  }, reduceMotion ? 80 : 520);
-}
-
-function selectCenteredBead() {
-  if (suppressRailSelection) return;
-
-  const rows = [...elements.ring.querySelectorAll(".bead-row")];
-  const railCenter = elements.ring.scrollTop + elements.ring.clientHeight / 2;
-  const closest = rows.reduce((best, row) => {
-    const center = row.offsetTop + row.clientHeight / 2;
-    const distance = Math.abs(center - railCenter);
-    return !best || distance < best.distance ? { row, distance } : best;
-  }, null);
-
-  if (!closest) return;
-  const beadIndex = Number(closest.row.dataset.beadIndex);
-  if (model.steps[state.currentIndex].beadIndex !== beadIndex) {
-    jumpToBead(beadIndex, { fromRail: true });
-  }
-}
-
-function jumpToBead(beadIndex, { fromRail = false } = {}) {
-  const primaryIndex = model.steps.findIndex(
-    (step) => step.beadIndex === beadIndex && step.primaryOnBead,
-  );
-  const fallbackIndex = model.steps.findIndex((step) => step.beadIndex === beadIndex);
-  const targetIndex = primaryIndex >= 0 ? primaryIndex : fallbackIndex;
-  if (targetIndex < 0) return;
-
-  goToStep(targetIndex, { announce: true });
-  if (fromRail && "vibrate" in navigator) navigator.vibrate(8);
 }
 
 function goToStep(index, { announce = false, scrollText = true, stopAudio = true } = {}) {
   if (stopAudio) stopSpeech();
   state.currentIndex = Math.max(0, Math.min(index, model.steps.length - 1));
+  if (guidedStepHeardId !== model.steps[state.currentIndex].id) guidedStepHeardId = null;
   if (state.currentIndex < model.steps.length - 1) state.completedAt = null;
   updateUi({ syncRail: true, announce });
   if (scrollText) elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
@@ -296,7 +281,14 @@ function loadVoices() {
   if (!("speechSynthesis" in window)) {
     elements.voiceSelect.innerHTML = '<option value="__auto__">Audio non disponibile</option>';
     elements.voiceSelect.disabled = true;
-    updateSpeechStatus();
+    elements.interactionModeSelect.querySelectorAll('option[value="automatic"], option[value="guided"]')
+      .forEach((option) => {
+        option.disabled = true;
+      });
+    state.interactionMode = "silent";
+    elements.interactionModeSelect.value = "silent";
+    updateUi();
+    updateSpeechStatus("Audio non disponibile · modalità silenziosa");
     return;
   }
 
@@ -335,12 +327,20 @@ function updateSpeechStatus(message = null) {
     elements.speechSupport.textContent = message;
     return;
   }
+  if (state.interactionMode === "silent") {
+    elements.speechSupport.textContent = "Senza audio";
+    elements.speechSupport.title = "Recita silenziosa con avanzamento manuale";
+    return;
+  }
   if (!("speechSynthesis" in window)) {
     elements.speechSupport.textContent = "Solo testo";
     return;
   }
   const selectedVoice = getSelectedVoice();
-  elements.speechSupport.textContent = selectedVoice ? selectedVoice.name : "Voce italiana automatica";
+  const modePrefix = state.interactionMode === "automatic" ? "Automatico" : "Gestito da te";
+  elements.speechSupport.textContent = selectedVoice
+    ? `${modePrefix} · ${selectedVoice.name}`
+    : `${modePrefix} · voce italiana`;
   elements.speechSupport.title = selectedVoice
     ? `Voce in uso: ${selectedVoice.name}`
     : "Il dispositivo sceglierà una voce italiana";
@@ -416,16 +416,14 @@ function speakCurrent({ continueAutomatically = true } = {}) {
     activeUtterance = null;
     speechStatus = "idle";
 
-    if (!continueAutomatically) {
-      updatePlayerUi();
+    if (state.currentIndex >= model.steps.length - 1) {
+      completeRosary();
       return;
     }
 
-    if (state.currentIndex >= model.steps.length - 1) {
-      state.completedAt = new Date().toISOString();
-      saveState();
+    if (!continueAutomatically) {
+      guidedStepHeardId = step.id;
       updatePlayerUi();
-      updateSpeechStatus("Rosario completato");
       return;
     }
 
@@ -452,6 +450,13 @@ function speakCurrent({ continueAutomatically = true } = {}) {
 }
 
 function toggleSpeech() {
+  if (state.currentIndex === model.steps.length - 1 && state.completedAt) {
+    state.currentIndex = 0;
+    state.completedAt = null;
+    updateUi({ syncRail: true, announce: true });
+    if (state.interactionMode === "silent") return;
+  }
+  if (state.interactionMode === "silent") return;
   if (speechStatus === "speaking") {
     pauseSpeech();
     return;
@@ -460,48 +465,208 @@ function toggleSpeech() {
     resumeSpeech();
     return;
   }
-  if (state.currentIndex === model.steps.length - 1 && state.completedAt) {
-    state.currentIndex = 0;
-    state.completedAt = null;
-    updateUi({ syncRail: true, announce: true });
-  }
-  speakCurrent({ continueAutomatically: true });
+  speakCurrent({ continueAutomatically: state.interactionMode === "automatic" });
 }
 
 function updatePlayerUi() {
   const isSpeaking = speechStatus === "speaking";
   const isPaused = speechStatus === "paused";
   const isCompleted = Boolean(state.completedAt) && state.currentIndex === model.steps.length - 1;
+  const isAutomatic = state.interactionMode === "automatic";
+  const isSilent = state.interactionMode === "silent";
+  const guidedCanAdvance =
+    state.interactionMode === "guided"
+    && guidedStepHeardId === model.steps[state.currentIndex].id;
 
-  elements.playIcon.textContent = isSpeaking ? "Ⅱ" : "▶";
+  elements.playIcon.textContent = isSpeaking ? "Ⅱ" : isCompleted ? "↻" : "▶";
   elements.playButtonLabel.textContent = isSpeaking
     ? "Pausa"
     : isPaused
       ? "Riprendi"
       : isCompleted
         ? "Ricomincia"
-        : "Ascolta";
+        : isAutomatic
+          ? "Avvia"
+          : "Ascolta";
   elements.playPauseButton.setAttribute(
     "aria-label",
-    isSpeaking ? "Metti in pausa" : isPaused ? "Riprendi la voce" : "Ascolta la preghiera",
+    isSpeaking
+      ? "Metti in pausa"
+      : isPaused
+        ? "Riprendi la voce"
+        : isCompleted
+          ? "Ricomincia il Rosario"
+          : isAutomatic
+            ? "Avvia la recita automatica"
+            : "Ascolta la preghiera",
   );
   elements.playPauseButton.classList.toggle("is-playing", isSpeaking);
+  elements.playPauseButton.hidden = isSilent && !isCompleted;
+  elements.audioSettings.forEach((field) => {
+    field.hidden = isSilent;
+  });
+
+  if (isCompleted) {
+    elements.interactionHint.textContent = "Rosario completato.";
+    elements.gripInstruction.textContent = "Completato";
+  } else if (isAutomatic) {
+    elements.interactionHint.textContent = isSpeaking
+      ? "Voce e corona avanzano da sole."
+      : isPaused
+        ? "Recita in pausa."
+        : "Avvia la voce: la corona seguirà la recita.";
+    elements.gripInstruction.textContent = isSpeaking ? "Scorre con la voce" : "Appoggia il pollice";
+  } else if (state.interactionMode === "guided") {
+    elements.interactionHint.textContent = isSpeaking
+      ? "Ascolta; al termine fai scorrere un grano."
+      : isPaused
+        ? "Recita in pausa."
+        : guidedCanAdvance
+          ? "Ora trascina il grano verso l’alto."
+          : "Tocca Ascolta per recitare questo passaggio.";
+    elements.gripInstruction.textContent = isSpeaking
+      ? "Ascolta"
+      : guidedCanAdvance
+        ? "Trascina ↑"
+        : "Prima ascolta";
+  } else {
+    elements.interactionHint.textContent = "Leggi, poi trascina il grano verso l’alto.";
+    elements.gripInstruction.textContent = "Trascina ↑";
+  }
+
+  const canGrip =
+    !isCompleted
+    && !isSpeaking
+    && !isPaused
+    && (isSilent || guidedCanAdvance);
+  elements.beadStage.classList.toggle("can-grip", canGrip);
+  elements.ring.setAttribute("aria-disabled", String(!canGrip));
+  elements.ring.tabIndex = canGrip ? 0 : -1;
+
+  const step = model.steps[state.currentIndex];
+  const gripAction = isAutomatic
+    ? "La corona avanza insieme alla voce."
+    : canGrip
+      ? "Trascina il grano verso l’alto per continuare."
+      : state.interactionMode === "guided"
+        ? "Ascolta il passaggio prima di avanzare."
+        : "Rosario completato.";
+  elements.ring.setAttribute(
+    "aria-label",
+    `${data.getBeadLabel(model.beads[step.beadIndex])}. ${step.code}. ${gripAction}`,
+  );
+}
+
+function completeRosary() {
+  state.completedAt = state.completedAt || new Date().toISOString();
+  saveState();
+  updatePlayerUi();
+  updateSpeechStatus("Rosario completato");
+  if ("vibrate" in navigator) navigator.vibrate([12, 45, 18]);
+}
+
+function advanceFromGrip() {
+  const currentStep = model.steps[state.currentIndex];
+  const canAdvance =
+    state.interactionMode === "silent"
+    || (state.interactionMode === "guided" && guidedStepHeardId === currentStep.id);
+  if (!canAdvance || speechStatus !== "idle") return;
+  if (state.currentIndex >= model.steps.length - 1) {
+    completeRosary();
+    return;
+  }
+
+  goToStep(state.currentIndex + 1, {
+    announce: true,
+    stopAudio: false,
+  });
+
+  window.clearTimeout(settleTimer);
+  elements.beadStage.classList.add("grip-settled");
+  settleTimer = window.setTimeout(() => elements.beadStage.classList.remove("grip-settled"), 240);
+  if ("vibrate" in navigator) navigator.vibrate(11);
+
+  if (state.interactionMode === "guided") {
+    speakCurrent({ continueAutomatically: false });
+  }
+}
+
+function beginGrip(event) {
+  const activeBead = event.target.closest(".bead-row.active .bead");
+  if (!activeBead || gripGesture) return;
+
+  gripGesture = {
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    deltaY: 0,
+    canAdvance:
+      (
+        state.interactionMode === "silent"
+        || (
+          state.interactionMode === "guided"
+          && guidedStepHeardId === model.steps[state.currentIndex].id
+        )
+      )
+      && speechStatus === "idle"
+      && !state.completedAt,
+  };
+  elements.ring.setPointerCapture?.(event.pointerId);
+  elements.ring.classList.add("is-gripping");
+  elements.beadStage.classList.add("is-gripping");
+  elements.ring.style.setProperty("--grip-drag", "0px");
+  event.preventDefault();
+}
+
+function moveGrip(event) {
+  if (!gripGesture || event.pointerId !== gripGesture.pointerId) return;
+  const rawDelta = event.clientY - gripGesture.startY;
+  const maxUpwardTravel = gripGesture.canAdvance ? -64 : -14;
+  gripGesture.deltaY = Math.max(maxUpwardTravel, Math.min(14, rawDelta));
+  elements.ring.style.setProperty("--grip-drag", `${gripGesture.deltaY}px`);
+  elements.beadStage.classList.toggle(
+    "grip-ready",
+    gripGesture.canAdvance && gripGesture.deltaY <= -GRIP_THRESHOLD,
+  );
+  event.preventDefault();
+}
+
+function endGrip(event) {
+  if (!gripGesture || event.pointerId !== gripGesture.pointerId) return;
+  const shouldAdvance = gripGesture.canAdvance && gripGesture.deltaY <= -GRIP_THRESHOLD;
+  gripGesture = null;
+  try {
+    elements.ring.releasePointerCapture?.(event.pointerId);
+  } catch {
+    // La cattura può essere già terminata dal browser dopo un pointercancel.
+  }
+  elements.ring.classList.remove("is-gripping");
+  elements.beadStage.classList.remove("is-gripping", "grip-ready");
+  elements.ring.style.setProperty("--grip-drag", "0px");
+
+  if (shouldAdvance) advanceFromGrip();
 }
 
 function changeRosaryConfiguration(change) {
   stopSpeech();
+  guidedStepHeardId = null;
   change();
   state.completedAt = null;
   rebuildRosary({ resetProgress: true });
 }
 
 elements.playPauseButton.addEventListener("click", toggleSpeech);
-elements.previousButton.addEventListener("click", () => goToStep(state.currentIndex - 1, { announce: true }));
-elements.nextButton.addEventListener("click", () => goToStep(state.currentIndex + 1, { announce: true }));
+
+elements.interactionModeSelect.addEventListener("change", () => {
+  stopSpeech();
+  state.interactionMode = elements.interactionModeSelect.value;
+  guidedStepHeardId = null;
+  updateUi();
+});
 
 elements.resetButton.addEventListener("click", () => {
   if (state.currentIndex > 0 && !window.confirm("Vuoi ricominciare il Rosario dall’inizio?")) return;
   stopSpeech();
+  guidedStepHeardId = null;
   state.currentIndex = 0;
   state.completedAt = null;
   updateUi({ syncRail: true, announce: true });
@@ -559,28 +724,15 @@ elements.speakIntentionToggle.addEventListener("change", () => {
   rebuildRosary({ keepStepId: model.steps[state.currentIndex].id });
 });
 
-elements.ring.addEventListener("pointerdown", () => {
-  window.clearTimeout(railReleaseTimer);
-  suppressRailSelection = false;
-});
-
-elements.ring.addEventListener(
-  "scroll",
-  () => {
-    if (suppressRailSelection) return;
-    window.clearTimeout(railScrollTimer);
-    railScrollTimer = window.setTimeout(selectCenteredBead, 120);
-  },
-  { passive: true },
-);
+elements.ring.addEventListener("pointerdown", beginGrip);
+elements.ring.addEventListener("pointermove", moveGrip);
+elements.ring.addEventListener("pointerup", endGrip);
+elements.ring.addEventListener("pointercancel", endGrip);
 
 elements.ring.addEventListener("keydown", (event) => {
-  if (!["ArrowUp", "ArrowDown"].includes(event.key)) return;
+  if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
   event.preventDefault();
-  const direction = event.key === "ArrowDown" ? 1 : -1;
-  const currentBeadIndex = model.steps[state.currentIndex].beadIndex;
-  const targetIndex = Math.max(0, Math.min(currentBeadIndex + direction, model.beads.length - 1));
-  jumpToBead(targetIndex);
+  advanceFromGrip();
 });
 
 window.addEventListener("resize", () => syncRailToBead(model.steps[state.currentIndex].beadIndex));
@@ -591,6 +743,7 @@ window.addEventListener("pagehide", () => {
 
 elements.fullRosaryToggle.checked = state.full;
 elements.mysterySetSelect.value = state.setChoice;
+elements.interactionModeSelect.value = state.interactionMode;
 elements.speechRateSelect.value = ["0.82", "0.88", "0.94", "1"].includes(state.rate) ? state.rate : "0.88";
 state.rate = elements.speechRateSelect.value;
 elements.speakIntentionToggle.disabled = true;
