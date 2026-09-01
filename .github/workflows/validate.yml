@@ -1,0 +1,27 @@
+name: Validate static app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check rosary-data.js
+          node --check home.js
+          node --check app.js
+          node --check pwa.js
+          node --check sw.js
+      - name: Test rosary sequence
+        run: node tests/rosary-data.test.js

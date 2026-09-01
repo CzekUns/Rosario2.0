@@ -3,163 +3,119 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#17263a" />
     <meta
       name="description"
-      content="Rosario 2.0, una webapp statica per accompagnare la recita del Rosario con audio, grani interattivi e meditazioni."
+      content="Recita il Rosario con i misteri del giorno, grani interattivi, guida vocale e avanzamento salvato sul dispositivo."
     />
     <title>Rosario 2.0</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
-    <div class="grain-overlay"></div>
-
+  <body class="home-page">
     <header class="topbar">
-      <a class="brand" href="#home" aria-label="Rosario 2.0 home">
-        <span class="brand-mark">✦</span>
+      <a class="brand" href="index.html" aria-label="Rosario 2.0, pagina iniziale">
+        <span class="brand-mark" aria-hidden="true">✦</span>
         <span>Rosario 2.0</span>
       </a>
-      <nav class="nav" aria-label="Sezioni principali">
-        <a href="#home">Home</a>
-        <a href="#app">App</a>
-        <a href="rosario.html">Rosario</a>
-      </nav>
-      <button class="ghost-button" id="openAppButton" type="button">Entra</button>
+      <a class="topbar-action" href="rosario.html">Apri il lettore</a>
     </header>
 
-    <main>
-      <section class="hero" id="home">
-        <div class="hero-copy">
-          <p class="eyebrow">prototipo static site</p>
-          <h1>Una corona digitale, lenta come una candela accesa.</h1>
-          <p class="hero-text">
-            Una prima versione semplice per recitare il Rosario, con guida vocale
-            del browser, grani sincronizzati e una modalità test ispirata a Maria
-            che scioglie i nodi.
+    <main class="home-main">
+      <section class="today-section" aria-labelledby="todayTitle">
+        <div class="today-copy">
+          <p class="eyebrow" id="todayDate">Rosario di oggi</p>
+          <h1 id="todayTitle">Misteri del giorno</h1>
+          <p class="today-intro">
+            Entra direttamente nella recita. Il punto raggiunto resta salvato su questo dispositivo.
           </p>
-          <div class="hero-actions">
-            <a class="primary-button" id="startJourneyButton" href="rosario.html">
-              Apri il Rosario
+
+          <div class="home-actions">
+            <a class="primary-button" href="rosario.html?mode=full&amp;set=auto&amp;restart=1">
+              Inizia il Rosario
             </a>
-            <a class="secondary-link" href="#app">Guarda le sezioni</a>
+            <a class="secondary-button" href="rosario.html?mode=short&amp;set=auto&amp;restart=1">
+              Recita una decina
+            </a>
+          </div>
+
+          <div class="resume-banner" id="resumeBanner" hidden>
+            <div>
+              <span>Recita in corso</span>
+              <strong id="resumeLabel">Riprendi da dove eri arrivato</strong>
+            </div>
+            <a href="rosario.html" id="resumeLink">Riprendi</a>
           </div>
         </div>
 
-        <div class="hero-card" aria-label="Anteprima della corona">
-          <div class="halo"></div>
-          <div class="mini-rosary" aria-hidden="true">
-            <span></span><span></span><span></span><span></span><span></span>
-            <span></span><span></span><span></span><span></span><span></span>
-            <span></span><span></span>
+        <aside class="today-card" aria-label="Misteri previsti oggi">
+          <div class="today-card-heading">
+            <span>Corona del giorno</span>
+            <strong id="todayShortLabel">Oggi</strong>
           </div>
-          <div class="hero-orb">
-            <span>Maria</span>
-            <strong>sciogli i nodi</strong>
-          </div>
-          <p>Login con Clerk previsto nella prossima fase.</p>
+          <ol id="todayMysteryList">
+            <li>Caricamento dei misteri…</li>
+          </ol>
+        </aside>
+      </section>
+
+      <section class="choose-section" aria-labelledby="chooseTitle">
+        <div class="section-heading">
+          <p class="eyebrow">Scelta manuale</p>
+          <h2 id="chooseTitle">Le quattro corone</h2>
+        </div>
+
+        <div class="mystery-grid">
+          <a class="mystery-card" href="rosario.html?set=joyful&amp;mode=full&amp;restart=1">
+            <span>lunedì · sabato</span>
+            <strong>Gaudiosi</strong>
+            <small>Annunciazione, visita, nascita, presentazione, ritrovamento</small>
+          </a>
+          <a class="mystery-card" href="rosario.html?set=luminous&amp;mode=full&amp;restart=1">
+            <span>giovedì</span>
+            <strong>Luminosi</strong>
+            <small>Battesimo, Cana, Regno, Trasfigurazione, Eucaristia</small>
+          </a>
+          <a class="mystery-card" href="rosario.html?set=sorrowful&amp;mode=full&amp;restart=1">
+            <span>martedì · venerdì</span>
+            <strong>Dolorosi</strong>
+            <small>Getsemani, flagellazione, spine, Calvario, crocifissione</small>
+          </a>
+          <a class="mystery-card" href="rosario.html?set=glorious&amp;mode=full&amp;restart=1">
+            <span>mercoledì · domenica</span>
+            <strong>Gloriosi</strong>
+            <small>Risurrezione, Ascensione, Pentecoste, Assunzione, incoronazione</small>
+          </a>
         </div>
       </section>
 
-      <section class="app-shell" id="app">
-        <aside class="sidebar" aria-label="Menu applicazione">
-          <div>
-            <p class="eyebrow">dashboard</p>
-            <h2>Spazi dell’app</h2>
-          </div>
-          <button class="section-tab active" data-section="rosario" type="button">
-            <span>01</span> Rosario
-          </button>
-          <button class="section-tab" data-section="misteri" type="button">
-            <span>02</span> Misteri
-          </button>
-          <button class="section-tab" data-section="intenzioni" type="button">
-            <span>03</span> Intenzioni
-          </button>
-          <button class="section-tab" data-section="diario" type="button">
-            <span>04</span> Diario
-          </button>
-          <button class="section-tab" data-section="profilo" type="button">
-            <span>05</span> Profilo
-          </button>
-        </aside>
-
-        <section class="workspace">
-          <article class="panel active" id="panel-rosario">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">pagina dedicata</p>
-                <h2>Rosario</h2>
-              </div>
-              <span class="status-pill">Mobile-first</span>
-            </div>
-
-            <div class="rosary-teaser" id="rosario">
-              <div class="rosary-teaser-orb" aria-hidden="true">
-                <span></span><span></span><span></span><span></span><span></span>
-                <span></span><span></span><span></span><span></span><span></span>
-              </div>
-              <div>
-                <h3>Una sezione solo per pregare.</h3>
-                <p>
-                  Ho separato la recita in una pagina pulita: corona grande,
-                  testo leggibile e comandi sempre raggiungibili col pollice.
-                </p>
-                <a class="primary-button" href="rosario.html">Vai al Rosario</a>
-              </div>
-            </div>
-          </article>
-
-          <article class="panel" id="panel-misteri">
-            <p class="eyebrow">placeholder</p>
-            <h2>Misteri</h2>
-            <p>
-              Qui arriverà il calendario dei misteri, con selezione automatica per
-              giorno della settimana e testi meditativi personalizzabili.
-            </p>
-          </article>
-
-          <article class="panel" id="panel-intenzioni">
-            <p class="eyebrow">placeholder</p>
-            <h2>Intenzioni</h2>
-            <p>
-              Uno spazio per salvare intenzioni, “nodi” e grazie ricevute. In fase
-              login potrà essere collegato al profilo utente.
-            </p>
-          </article>
-
-          <article class="panel" id="panel-diario">
-            <p class="eyebrow">placeholder</p>
-            <h2>Diario</h2>
-            <p>
-              Storico delle recite, streak dolce e zero gamification aggressiva:
-              più ritmo spirituale, meno app che ti sgrida.
-            </p>
-          </article>
-
-          <article class="panel" id="panel-profilo">
-            <p class="eyebrow">placeholder</p>
-            <h2>Profilo</h2>
-            <p>
-              Area pronta per Clerk: accesso, preferenze voce, lingua, tema e
-              sincronizzazione cloud.
-            </p>
-          </article>
-        </section>
+      <section class="privacy-note" aria-label="Funzionamento e riservatezza">
+        <div>
+          <strong>Essenziale e riservato</strong>
+          <p>Nessun account necessario. Preferenze e avanzamento restano nel browser.</p>
+        </div>
+        <div>
+          <strong>Disponibile anche offline</strong>
+          <p>Dopo la prima apertura, testi e interfaccia restano accessibili senza connessione.</p>
+        </div>
+        <div>
+          <strong>Voce del dispositivo</strong>
+          <p>La migliore voce italiana disponibile viene scelta automaticamente e può essere cambiata.</p>
+        </div>
       </section>
     </main>
 
     <footer class="footer">
-      <span>Rosario 2.0 · static prototype</span>
-      <span>Fonti di struttura: Vatican.va e Radio Maria, vedi README.</span>
+      <span>Rosario 2.0</span>
+      <span>
+        Struttura dei misteri:
+        <a href="https://www.vatican.va/special/rosary/documents/misteri.html">Vatican.va</a>
+      </span>
     </footer>
 
-    <script src="app.js" defer></script>
+    <script src="rosary-data.js"></script>
+    <script src="home.js" defer></script>
+    <script src="pwa.js" defer></script>
   </body>
 </html>

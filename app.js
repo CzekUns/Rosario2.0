@@ -1,528 +1,605 @@
-const prayers = {
-  sign: "Nel nome del Padre, del Figlio e dello Spirito Santo. Amen.",
-  ourFather:
-    "Padre nostro, che sei nei cieli, sia santificato il tuo nome, venga il tuo regno, sia fatta la tua volontà, come in cielo così in terra. Dacci oggi il nostro pane quotidiano, rimetti a noi i nostri debiti come anche noi li rimettiamo ai nostri debitori, e non abbandonarci alla tentazione, ma liberaci dal male. Amen.",
-  hailMary:
-    "Ave o Maria, piena di grazia, il Signore è con te. Tu sei benedetta fra le donne e benedetto è il frutto del tuo seno, Gesù. Santa Maria, Madre di Dio, prega per noi peccatori, adesso e nell'ora della nostra morte. Amen.",
-  glory:
-    "Gloria al Padre, al Figlio e allo Spirito Santo. Come era nel principio, ora e sempre, nei secoli dei secoli. Amen.",
-  fatima:
-    "Gesù mio, perdona le nostre colpe, preservaci dal fuoco dell'inferno, porta in cielo tutte le anime, specialmente le più bisognose della tua misericordia.",
-  undoer:
-    "Maria, Madre che scioglie i nodi, affidiamo a te questo nodo. Prendilo nelle tue mani pazienti e guidaci verso la pace del cuore.",
+"use strict";
+
+const AUTO_VOICE = "__auto__";
+const STORAGE_KEY = "rosario2.reader.v2";
+const data = window.RosaryData;
+
+const elements = {
+  ring: document.querySelector("#rosaryRing"),
+  prayerScroll: document.querySelector("#prayerScroll"),
+  prayerTitle: document.querySelector("#prayerTitle"),
+  prayerText: document.querySelector("#prayerText"),
+  prayerAnnouncement: document.querySelector("#prayerAnnouncement"),
+  currentStepType: document.querySelector("#currentStepType"),
+  currentStepTitle: document.querySelector("#currentStepTitle"),
+  currentStepCount: document.querySelector("#currentStepCount"),
+  stepCode: document.querySelector("#stepCode"),
+  progressBar: document.querySelector("#progressBar"),
+  progressFill: document.querySelector("#progressFill"),
+  progressLabel: document.querySelector("#progressLabel"),
+  playPauseButton: document.querySelector("#playPauseButton"),
+  playButtonLabel: document.querySelector("#playButtonLabel"),
+  playIcon: document.querySelector(".play-icon"),
+  previousButton: document.querySelector("#previousButton"),
+  nextButton: document.querySelector("#nextButton"),
+  resetButton: document.querySelector("#resetButton"),
+  fullRosaryToggle: document.querySelector("#fullRosaryToggle"),
+  mysterySetSelect: document.querySelector("#mysterySetSelect"),
+  shortMysteryField: document.querySelector("#shortMysteryField"),
+  shortMysterySelect: document.querySelector("#shortMysterySelect"),
+  voiceSelect: document.querySelector("#voiceSelect"),
+  speechRateSelect: document.querySelector("#speechRateSelect"),
+  speechSupport: document.querySelector("#speechSupport"),
+  intentionInput: document.querySelector("#intentionInput"),
+  speakIntentionToggle: document.querySelector("#speakIntentionToggle"),
+  modeLabel: document.querySelector("#modeLabel"),
+  durationEstimate: document.querySelector("#durationEstimate"),
+  setLabel: document.querySelector("#setLabel"),
 };
 
-const mysteries = [
-  "L'Annunciazione dell'Angelo a Maria",
-  "La visita di Maria a Elisabetta",
-  "La nascita di Gesù a Betlemme",
-  "La presentazione di Gesù al Tempio",
-  "Il ritrovamento di Gesù nel Tempio",
-];
+const query = new URLSearchParams(window.location.search);
+const savedState = readSavedState();
+const shouldRestart = query.get("restart") === "1";
+const querySet = data.mysterySets[query.get("set")] ? query.get("set") : query.get("set") === "auto" ? "auto" : null;
+const queryMode = ["full", "short"].includes(query.get("mode")) ? query.get("mode") : null;
 
-const shortMysteries = [mysteries[0]];
-const rosaryBeads = [
-  { kind: "large", role: "incipit" },
-  ...Array.from({ length: 3 }, () => ({ kind: "small", role: "opening" })),
-  { kind: "large", role: "opening-glory" },
-  ...mysteries.flatMap((_, decadeIndex) => [
-    { kind: "large", role: "decade", decadeIndex },
-    ...Array.from({ length: 10 }, (_, hailIndex) => ({
-      kind: "small",
-      role: "hail-mary",
-      decadeIndex,
-      hailIndex,
-    })),
-  ]),
-  { kind: "large", role: "final" },
-];
-const beadCount = rosaryBeads.length;
-let steps = [];
-let currentIndex = 0;
-let isPlaying = false;
+const state = {
+  setChoice: querySet || savedState?.setChoice || "auto",
+  full: queryMode ? queryMode === "full" : savedState?.full ?? true,
+  shortMysteryIndex: Number(savedState?.shortMysteryIndex) || 0,
+  currentIndex: 0,
+  voiceName: savedState?.voiceName || AUTO_VOICE,
+  rate: String(savedState?.rate || "0.88"),
+  completedAt: shouldRestart ? null : savedState?.completedAt || null,
+};
+
+let model;
 let voices = [];
-let railScrollTimer;
-let railReleaseTimer;
+let bestVoice = null;
+let speechStatus = "idle";
+let activeSpeechRun = 0;
+let activeUtterance = null;
+let continuationTimer = null;
+let railScrollTimer = null;
+let railReleaseTimer = null;
 let suppressRailSelection = false;
 
-const ring = document.querySelector("#rosaryRing");
-const prayerTitle = document.querySelector("#prayerTitle");
-const prayerText = document.querySelector("#prayerText");
-const currentStepType = document.querySelector("#currentStepType");
-const currentStepTitle = document.querySelector("#currentStepTitle");
-const currentStepCount = document.querySelector("#currentStepCount");
-const stepCode = document.querySelector("#stepCode");
-const progressFill = document.querySelector("#progressFill");
-const progressLabel = document.querySelector("#progressLabel");
-const playButton = document.querySelector("#playButton");
-const pauseButton = document.querySelector("#pauseButton");
-const nextButton = document.querySelector("#nextButton");
-const resetButton = document.querySelector("#resetButton");
-const fullRosaryToggle = document.querySelector("#fullRosaryToggle");
-const voiceSelect = document.querySelector("#voiceSelect");
-const speechSupport = document.querySelector("#speechSupport");
-const knotInput = document.querySelector("#knotInput");
-const modeLabel = document.querySelector("#modeLabel");
-const durationEstimate = document.querySelector("#durationEstimate");
-
-function createStep(type, title, text, beadIndex = null, context = {}) {
-  const visibleBeadIndex = beadIndex === null ? null : Math.min(beadIndex, beadCount - 1);
-  return { type, title, text, beadIndex: visibleBeadIndex, ...context };
+function readSavedState() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY));
+    return parsed?.version === 2 ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
-function buildSteps(useFullRosary = false) {
-  const activeMysteries = useFullRosary ? mysteries : shortMysteries;
-  const finalBeadIndex = getFinalBeadIndex(activeMysteries.length);
-  const nextSteps = [
-    createStep("Intro", "Segno della Croce", prayers.sign, 0),
-    createStep("Invocazione", "Maria che scioglie i nodi", knotPrayer(), 0),
-  ];
-
-  activeMysteries.forEach((mystery, decadeIndex) => {
-    const decadeBeadIndex = getDecadeBeadIndex(decadeIndex);
-    nextSteps.push(
-      createStep(
-        "Mistero",
-        `${decadeIndex + 1}. ${mystery}`,
-        `Meditiamo: ${mystery}. ${prayers.undoer}`,
-        decadeBeadIndex,
-        { mysteryNumber: decadeIndex + 1 },
-      ),
-    );
-    nextSteps.push(
-      createStep("Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex, {
-        mysteryNumber: decadeIndex + 1,
+function saveState() {
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        setChoice: state.setChoice,
+        resolvedSetId: model.setId,
+        full: state.full,
+        shortMysteryIndex: state.shortMysteryIndex,
+        currentStepId: model.steps[state.currentIndex]?.id || model.steps[0].id,
+        currentIndex: state.currentIndex,
+        totalSteps: model.steps.length,
+        voiceName: state.voiceName,
+        rate: state.rate,
+        completedAt: state.completedAt,
+        updatedAt: new Date().toISOString(),
       }),
     );
+  } catch {
+    // La recita continua anche quando lo spazio locale non è disponibile.
+  }
+}
 
-    for (let hailIndex = 1; hailIndex <= 10; hailIndex += 1) {
-      nextSteps.push(
-        createStep(
-          "Ave Maria",
-          `Ave Maria ${hailIndex} / 10`,
-          prayers.hailMary,
-          getHailMaryBeadIndex(decadeIndex, hailIndex - 1),
-          { mysteryNumber: decadeIndex + 1, repetition: hailIndex },
-        ),
-      );
-    }
+function canRestoreProgress() {
+  if (shouldRestart || !savedState?.currentStepId) return false;
+  if (querySet && querySet !== savedState.setChoice) return false;
+  if (queryMode && (queryMode === "full") !== savedState.full) return false;
 
-    const closingBeadIndex = getFinalBeadIndex(decadeIndex + 1);
-    nextSteps.push(
-      createStep("Gloria", "Gloria al Padre", prayers.glory, closingBeadIndex, {
-        mysteryNumber: decadeIndex + 1,
-      }),
-    );
-    nextSteps.push(
-      createStep("Fatima", "Preghiera di Fatima", prayers.fatima, closingBeadIndex, {
-        mysteryNumber: decadeIndex + 1,
-      }),
-    );
+  const resolvedSetId = data.resolveSetId(state.setChoice);
+  return savedState.resolvedSetId === resolvedSetId;
+}
+
+function populateMysteryOptions() {
+  const resolvedSet = data.mysterySets[data.resolveSetId(state.setChoice)];
+  const automaticOption = elements.mysterySetSelect.querySelector('option[value="auto"]');
+  automaticOption.textContent = `Automatici: ${data.mysterySets[data.getTodaySetId()].shortLabel} oggi`;
+
+  elements.shortMysterySelect.innerHTML = "";
+  resolvedSet.mysteries.forEach((title, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index + 1}. ${title}`;
+    elements.shortMysterySelect.appendChild(option);
+  });
+  elements.shortMysterySelect.value = String(state.shortMysteryIndex);
+}
+
+function rebuildRosary({ keepStepId = null, restoreSaved = false, resetProgress = false } = {}) {
+  const previousStepId = resetProgress
+    ? null
+    : keepStepId || model?.steps[state.currentIndex]?.id || null;
+  model = data.buildRosary({
+    setChoice: state.setChoice,
+    full: state.full,
+    shortMysteryIndex: state.shortMysteryIndex,
+    intention: elements.intentionInput.value,
+    speakIntention: elements.speakIntentionToggle.checked,
   });
 
-  nextSteps.push(
-    createStep(
-      "Finale",
-      "Affidamento",
-      "Maria che scioglie i nodi, resta con noi e guidaci al tuo Figlio Gesù. Amen.",
-      finalBeadIndex,
-    ),
-  );
-  return nextSteps;
-}
+  populateMysteryOptions();
+  renderBeads();
 
-function getDecadeBeadIndex(decadeIndex) {
-  return 5 + decadeIndex * 11;
-}
-
-function getHailMaryBeadIndex(decadeIndex, hailIndex) {
-  return getDecadeBeadIndex(decadeIndex) + 1 + hailIndex;
-}
-
-function getFinalBeadIndex(activeDecadeCount) {
-  return Math.min(getDecadeBeadIndex(activeDecadeCount), beadCount - 1);
-}
-
-function knotPrayer() {
-  const knot = knotInput?.value.trim();
-  if (!knot) {
-    return prayers.undoer;
-  }
-  return `Maria, Madre che scioglie i nodi, ti affidiamo questo nodo: ${knot}. Prendilo nelle tue mani pazienti e guidaci verso la pace del cuore.`;
+  const targetStepId = restoreSaved ? savedState?.currentStepId : previousStepId;
+  const matchingIndex = targetStepId ? model.steps.findIndex((step) => step.id === targetStepId) : -1;
+  state.currentIndex = matchingIndex >= 0 ? matchingIndex : 0;
+  state.currentIndex = Math.min(state.currentIndex, model.steps.length - 1);
+  updateUi({ syncRail: true });
 }
 
 function renderBeads() {
-  if (!ring) {
-    return;
-  }
+  elements.ring.innerHTML = "";
 
-  ring.innerHTML = "";
-  const useFullRosary = Boolean(fullRosaryToggle?.checked);
-  const visibleBeadCount = useFullRosary
-    ? beadCount
-    : getFinalBeadIndex(shortMysteries.length) + 1;
-
-  for (let index = 0; index < visibleBeadCount; index += 1) {
+  model.beads.forEach((bead, beadIndex) => {
     const row = document.createElement("div");
-    const bead = document.createElement("button");
     const code = document.createElement("span");
-    const isMajor = rosaryBeads[index].kind === "large";
-    const isShortFinal = !useFullRosary && index === visibleBeadCount - 1;
+    const button = document.createElement("button");
 
     row.className = "bead-row";
-    row.dataset.beadIndex = String(index);
+    row.dataset.beadIndex = String(beadIndex);
     row.setAttribute("role", "listitem");
 
     code.className = "bead-code";
-    code.textContent = getBeadCode(index, isShortFinal);
+    code.textContent = data.getBeadCode(bead);
     code.dataset.defaultCode = code.textContent;
 
-    bead.className = `bead${isMajor ? " major" : ""}`;
-    bead.type = "button";
-    bead.setAttribute("aria-label", isShortFinal ? "Grano finale" : getBeadLabel(index));
-    bead.addEventListener("click", () => jumpToBead(index));
+    button.className = `bead${bead.kind === "large" ? " major" : ""}`;
+    button.type = "button";
+    button.setAttribute("aria-label", data.getBeadLabel(bead));
+    button.addEventListener("click", () => jumpToBead(beadIndex));
 
-    row.append(code, bead);
-    ring.appendChild(row);
-  }
+    row.append(code, button);
+    elements.ring.appendChild(row);
+  });
 }
 
-function getBeadCode(index, isShortFinal = false) {
-  if (isShortFinal || rosaryBeads[index].role === "final") {
-    return "Fine";
+function getLastStepIndexForBead(beadIndex) {
+  for (let index = model.steps.length - 1; index >= 0; index -= 1) {
+    if (model.steps[index].beadIndex === beadIndex) return index;
   }
-
-  const bead = rosaryBeads[index];
-  if (bead.role === "decade") {
-    return `Mis.${bead.decadeIndex + 1}`;
-  }
-  if (bead.role === "hail-mary") {
-    return `Mis.${bead.decadeIndex + 1}-${bead.hailIndex + 1}`;
-  }
-  return index === 0 ? "Inizio" : "Apertura";
+  return -1;
 }
 
-function getStepCode(step) {
-  if (step.mysteryNumber) {
-    if (step.repetition) {
-      return `Mis.${step.mysteryNumber}-${step.repetition}`;
-    }
+function updateUi({ syncRail = false, announce = false } = {}) {
+  const step = model.steps[state.currentIndex];
+  const progress = model.steps.length <= 1
+    ? 0
+    : Math.round((state.currentIndex / (model.steps.length - 1)) * 100);
 
-    const suffixes = {
-      "Padre Nostro": "P",
-      Gloria: "G",
-      Fatima: "F",
-    };
-    const suffix = suffixes[step.type];
-    return suffix ? `Mis.${step.mysteryNumber}-${suffix}` : `Mis.${step.mysteryNumber}`;
-  }
+  elements.prayerTitle.textContent = step.title;
+  elements.prayerText.textContent = step.text;
+  elements.currentStepType.textContent = step.type;
+  elements.currentStepTitle.textContent = step.title;
+  elements.currentStepCount.textContent = `${step.beadIndex + 1} di ${model.beads.length}`;
+  elements.stepCode.textContent = step.code;
+  elements.progressFill.style.width = `${progress}%`;
+  elements.progressLabel.textContent = `${progress}%`;
+  elements.progressBar.setAttribute("aria-valuenow", String(progress));
+  elements.modeLabel.textContent = state.full ? "Rosario completo" : "Una decina";
+  elements.durationEstimate.textContent = state.full ? "circa 25 minuti" : "circa 8 minuti";
+  elements.setLabel.textContent = model.set.label;
+  elements.shortMysteryField.hidden = state.full;
+  elements.previousButton.disabled = state.currentIndex === 0;
+  elements.nextButton.disabled = state.currentIndex === model.steps.length - 1;
 
-  const labels = {
-    Intro: "Inizio",
-    Invocazione: "Nodo",
-    Finale: "Fine",
-  };
-  return labels[step.type] || step.type;
-}
-
-function getBeadLabel(index) {
-  const bead = rosaryBeads[index];
-  if (bead.role === "decade") {
-    return `Grano grande, mistero ${bead.decadeIndex + 1} e Padre Nostro`;
-  }
-  if (bead.role === "hail-mary") {
-    return `Grano piccolo, Ave Maria ${bead.hailIndex + 1}, decina ${bead.decadeIndex + 1}`;
-  }
-  return `Grano ${index + 1}`;
-}
-
-function refreshSteps(keepIndex = false) {
-  if (!ring) {
-    return;
-  }
-
-  const useFullRosary = Boolean(fullRosaryToggle?.checked);
-  steps = buildSteps(useFullRosary);
-  modeLabel.textContent = useFullRosary ? "Rosario completo" : "Rosario breve";
-  durationEstimate.textContent = useFullRosary ? "~22 min" : "~4 min";
-  if (!keepIndex) {
-    currentIndex = 0;
-  }
-  currentIndex = Math.min(currentIndex, steps.length - 1);
-  renderBeads();
-  updateUi();
-}
-
-function updateUi() {
-  if (!steps.length) {
-    return;
-  }
-
-  const currentStep = steps[currentIndex];
-  const progress = steps.length <= 1 ? 0 : Math.round((currentIndex / (steps.length - 1)) * 100);
-
-  prayerTitle.textContent = currentStep.title;
-  prayerText.textContent = currentStep.text;
-  currentStepType.textContent = currentStep.type;
-  currentStepTitle.textContent = currentStep.title;
-  currentStepCount.textContent = `${currentIndex + 1}/${steps.length}`;
-  stepCode.textContent = getStepCode(currentStep);
-  progressFill.style.width = `${progress}%`;
-  progressLabel.textContent = `${progress}%`;
-
-  document.querySelectorAll(".bead-row").forEach((row) => {
+  elements.ring.querySelectorAll(".bead-row").forEach((row) => {
     const beadIndex = Number(row.dataset.beadIndex);
-    const bead = row.querySelector(".bead");
+    const button = row.querySelector(".bead");
     const code = row.querySelector(".bead-code");
-    const isActive = beadIndex === currentStep.beadIndex;
+    const isActive = beadIndex === step.beadIndex;
+    const isDone = getLastStepIndexForBead(beadIndex) < state.currentIndex;
 
     row.classList.toggle("active", isActive);
-    row.classList.toggle("done", beadIndex < currentStep.beadIndex);
-    bead?.setAttribute("aria-current", isActive ? "step" : "false");
-    if (code) {
-      code.textContent = isActive ? getStepCode(currentStep) : code.dataset.defaultCode;
-    }
+    row.classList.toggle("done", isDone);
+    button.setAttribute("aria-current", isActive ? "step" : "false");
+    code.textContent = isActive ? step.code : code.dataset.defaultCode;
   });
 
-  syncRailToBead(currentStep.beadIndex);
+  if (announce) {
+    elements.prayerAnnouncement.textContent = `${step.title}. ${expandCodeForSpeech(step)}`;
+  }
+
+  updatePlayerUi();
+  updateSpeechStatus();
+  saveState();
+
+  if (syncRail) syncRailToBead(step.beadIndex);
 }
 
 function syncRailToBead(beadIndex) {
-  if (!ring || beadIndex === null) {
-    return;
-  }
+  const row = elements.ring.querySelector(`[data-bead-index="${beadIndex}"]`);
+  if (!row) return;
 
-  const row = ring.querySelector(`[data-bead-index="${beadIndex}"]`);
-  if (!row) {
-    return;
-  }
-
-  const nextTop = row.offsetTop - (ring.clientHeight - row.clientHeight) / 2;
-  if (Math.abs(ring.scrollTop - nextTop) < 2) {
-    return;
-  }
+  const nextTop = row.offsetTop - (elements.ring.clientHeight - row.clientHeight) / 2;
+  if (Math.abs(elements.ring.scrollTop - nextTop) < 2) return;
 
   suppressRailSelection = true;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  ring.scrollTo({ top: nextTop, behavior: reduceMotion ? "auto" : "smooth" });
+  elements.ring.scrollTo({ top: nextTop, behavior: reduceMotion ? "auto" : "smooth" });
   window.clearTimeout(railReleaseTimer);
   railReleaseTimer = window.setTimeout(() => {
     suppressRailSelection = false;
-  }, reduceMotion ? 80 : 420);
+  }, reduceMotion ? 80 : 520);
 }
 
 function selectCenteredBead() {
-  if (!ring || suppressRailSelection) {
-    return;
-  }
+  if (suppressRailSelection) return;
 
-  const rows = [...ring.querySelectorAll(".bead-row")];
-  const railCenter = ring.scrollTop + ring.clientHeight / 2;
-  const closestRow = rows.reduce((closest, row) => {
-    const rowCenter = row.offsetTop + row.clientHeight / 2;
-    const distance = Math.abs(rowCenter - railCenter);
-    return !closest || distance < closest.distance ? { row, distance } : closest;
+  const rows = [...elements.ring.querySelectorAll(".bead-row")];
+  const railCenter = elements.ring.scrollTop + elements.ring.clientHeight / 2;
+  const closest = rows.reduce((best, row) => {
+    const center = row.offsetTop + row.clientHeight / 2;
+    const distance = Math.abs(center - railCenter);
+    return !best || distance < best.distance ? { row, distance } : best;
   }, null);
 
-  if (!closestRow) {
-    return;
-  }
-
-  const beadIndex = Number(closestRow.row.dataset.beadIndex);
-  if (steps[currentIndex]?.beadIndex !== beadIndex) {
+  if (!closest) return;
+  const beadIndex = Number(closest.row.dataset.beadIndex);
+  if (model.steps[state.currentIndex].beadIndex !== beadIndex) {
     jumpToBead(beadIndex, { fromRail: true });
   }
 }
 
-function speakCurrent() {
-  if (!("speechSynthesis" in window)) {
-    if (speechSupport) {
-      speechSupport.textContent = "Audio non disponibile";
-    }
-    return;
-  }
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(steps[currentIndex].text);
-  utterance.lang = "it-IT";
-  utterance.rate = 0.92;
-  utterance.pitch = 0.92;
-
-  const selectedVoice = voices.find((voice) => voice.name === voiceSelect.value);
-  if (selectedVoice) {
-    utterance.voice = selectedVoice;
-  }
-
-  utterance.onend = () => {
-    if (!isPlaying) {
-      return;
-    }
-    if (currentIndex < steps.length - 1) {
-      currentIndex += 1;
-      updateUi();
-      window.setTimeout(speakCurrent, 450);
-    } else {
-      isPlaying = false;
-      playButton.textContent = "Ricomincia";
-    }
-  };
-
-  window.speechSynthesis.speak(utterance);
-}
-
-function play() {
-  if (currentIndex >= steps.length - 1 && !isPlaying) {
-    currentIndex = 0;
-  }
-  refreshSteps(true);
-  isPlaying = true;
-  playButton.textContent = "In ascolto";
-  speakCurrent();
-}
-
-function pause() {
-  isPlaying = false;
-  playButton.textContent = "Riprendi";
-  if ("speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
-  }
-}
-
-function next() {
-  pause();
-  currentIndex = Math.min(currentIndex + 1, steps.length - 1);
-  updateUi();
-}
-
-function reset() {
-  pause();
-  currentIndex = 0;
-  playButton.textContent = "Play";
-  refreshSteps();
-}
-
 function jumpToBead(beadIndex, { fromRail = false } = {}) {
-  const exactIndex = steps.findIndex((step) => step.beadIndex === beadIndex);
-  const nextIndex = exactIndex >= 0
-    ? exactIndex
-    : steps.findIndex((step) => step.beadIndex > beadIndex);
-  if (nextIndex >= 0) {
-    pause();
-    currentIndex = nextIndex;
-    updateUi();
-    if (fromRail && "vibrate" in navigator) {
-      navigator.vibrate(8);
-    }
-  }
+  const primaryIndex = model.steps.findIndex(
+    (step) => step.beadIndex === beadIndex && step.primaryOnBead,
+  );
+  const fallbackIndex = model.steps.findIndex((step) => step.beadIndex === beadIndex);
+  const targetIndex = primaryIndex >= 0 ? primaryIndex : fallbackIndex;
+  if (targetIndex < 0) return;
+
+  goToStep(targetIndex, { announce: true });
+  if (fromRail && "vibrate" in navigator) navigator.vibrate(8);
+}
+
+function goToStep(index, { announce = false, scrollText = true, stopAudio = true } = {}) {
+  if (stopAudio) stopSpeech();
+  state.currentIndex = Math.max(0, Math.min(index, model.steps.length - 1));
+  if (state.currentIndex < model.steps.length - 1) state.completedAt = null;
+  updateUi({ syncRail: true, announce });
+  if (scrollText) elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function scoreVoice(voice) {
+  const name = `${voice.name} ${voice.voiceURI}`.toLowerCase();
+  const lang = String(voice.lang || "").toLowerCase();
+  let score = lang === "it-it" ? 120 : lang.startsWith("it") ? 95 : 0;
+
+  if (/natural|neural/.test(name)) score += 75;
+  if (/enhanced|premium/.test(name)) score += 65;
+  if (/google/.test(name)) score += 55;
+  if (/microsoft/.test(name)) score += 50;
+  if (/alice|isabella|elsa|federica|paola|diego|luca/.test(name)) score += 35;
+  if (voice.default) score += 8;
+  if (voice.localService) score += 4;
+  if (/espeak|compact|festival|mbrola/.test(name)) score -= 120;
+  return score;
 }
 
 function loadVoices() {
-  if (!voiceSelect) {
-    return;
-  }
-
   if (!("speechSynthesis" in window)) {
-    if (speechSupport) {
-      speechSupport.textContent = "Solo testo";
-    }
-    voiceSelect.innerHTML = "<option>Audio non supportato</option>";
-    voiceSelect.disabled = true;
+    elements.voiceSelect.innerHTML = '<option value="__auto__">Audio non disponibile</option>';
+    elements.voiceSelect.disabled = true;
+    updateSpeechStatus();
     return;
   }
 
   voices = window.speechSynthesis
     .getVoices()
-    .filter((voice) => voice.lang.toLowerCase().startsWith("it"))
-    .sort((firstVoice, secondVoice) => firstVoice.name.localeCompare(secondVoice.name));
+    .filter((voice) => String(voice.lang || "").toLowerCase().startsWith("it"))
+    .sort((first, second) => scoreVoice(second) - scoreVoice(first) || first.name.localeCompare(second.name));
+  bestVoice = voices[0] || null;
 
-  const fallbackVoices = window.speechSynthesis.getVoices();
-  const availableVoices = voices.length ? voices : fallbackVoices;
-  voiceSelect.innerHTML = "";
-  availableVoices.forEach((voice) => {
+  elements.voiceSelect.innerHTML = "";
+  const automatic = document.createElement("option");
+  automatic.value = AUTO_VOICE;
+  automatic.textContent = bestVoice ? `Migliore disponibile · ${bestVoice.name}` : "Voce italiana predefinita";
+  elements.voiceSelect.appendChild(automatic);
+
+  voices.forEach((voice) => {
     const option = document.createElement("option");
     option.value = voice.name;
     option.textContent = `${voice.name} · ${voice.lang}`;
-    voiceSelect.appendChild(option);
+    elements.voiceSelect.appendChild(option);
   });
 
-  if (!availableVoices.length) {
-    const option = document.createElement("option");
-    option.textContent = "Voce predefinita";
-    voiceSelect.appendChild(option);
+  const selectedExists = state.voiceName === AUTO_VOICE || voices.some((voice) => voice.name === state.voiceName);
+  if (!selectedExists) state.voiceName = AUTO_VOICE;
+  elements.voiceSelect.value = state.voiceName;
+  updateSpeechStatus();
+}
+
+function getSelectedVoice() {
+  if (state.voiceName === AUTO_VOICE) return bestVoice;
+  return voices.find((voice) => voice.name === state.voiceName) || bestVoice;
+}
+
+function updateSpeechStatus(message = null) {
+  if (message) {
+    elements.speechSupport.textContent = message;
+    return;
   }
+  if (!("speechSynthesis" in window)) {
+    elements.speechSupport.textContent = "Solo testo";
+    return;
+  }
+  const selectedVoice = getSelectedVoice();
+  elements.speechSupport.textContent = selectedVoice ? selectedVoice.name : "Voce italiana automatica";
+  elements.speechSupport.title = selectedVoice
+    ? `Voce in uso: ${selectedVoice.name}`
+    : "Il dispositivo sceglierà una voce italiana";
 }
 
-document.querySelectorAll(".section-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const section = tab.dataset.section;
-    document.querySelectorAll(".section-tab").forEach((item) => item.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-    tab.classList.add("active");
-    document.querySelector(`#panel-${section}`).classList.add("active");
+function expandCodeForSpeech(step) {
+  if (!step.mysteryNumber) return step.title;
+  if (step.repetition) {
+    return `Mistero ${step.mysteryNumber}, Ave Maria ${step.repetition} di 10`;
+  }
+  return `Mistero ${step.mysteryNumber}`;
+}
+
+function prepareSpeechText(step) {
+  const ordinals = { "1º": "primo", "2º": "secondo", "3º": "terzo", "4º": "quarto", "5º": "quinto" };
+  return Object.entries(ordinals).reduce(
+    (text, [number, word]) => text.replaceAll(number, word),
+    step.text.replace(/\s+/g, " ").trim(),
+  );
+}
+
+function stopSpeech() {
+  activeSpeechRun += 1;
+  window.clearTimeout(continuationTimer);
+  continuationTimer = null;
+  activeUtterance = null;
+  speechStatus = "idle";
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  updatePlayerUi();
+}
+
+function pauseSpeech() {
+  if (!("speechSynthesis" in window) || speechStatus !== "speaking") return;
+  window.speechSynthesis.pause();
+  speechStatus = "paused";
+  updatePlayerUi();
+}
+
+function resumeSpeech() {
+  if (!("speechSynthesis" in window) || speechStatus !== "paused") return;
+  window.speechSynthesis.resume();
+  speechStatus = "speaking";
+  updatePlayerUi();
+}
+
+function speakCurrent({ continueAutomatically = true } = {}) {
+  if (!("speechSynthesis" in window)) {
+    updateSpeechStatus("Audio non disponibile");
+    return;
+  }
+
+  stopSpeech();
+  const runId = activeSpeechRun;
+  const step = model.steps[state.currentIndex];
+  const utterance = new SpeechSynthesisUtterance(prepareSpeechText(step));
+  const selectedVoice = getSelectedVoice();
+
+  utterance.lang = "it-IT";
+  utterance.rate = Number(state.rate) || 0.88;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  if (selectedVoice) utterance.voice = selectedVoice;
+
+  activeUtterance = utterance;
+  utterance.onstart = () => {
+    if (runId !== activeSpeechRun) return;
+    speechStatus = "speaking";
+    updatePlayerUi();
+  };
+
+  utterance.onend = () => {
+    if (runId !== activeSpeechRun) return;
+    activeUtterance = null;
+    speechStatus = "idle";
+
+    if (!continueAutomatically) {
+      updatePlayerUi();
+      return;
+    }
+
+    if (state.currentIndex >= model.steps.length - 1) {
+      state.completedAt = new Date().toISOString();
+      saveState();
+      updatePlayerUi();
+      updateSpeechStatus("Rosario completato");
+      return;
+    }
+
+    const nextStep = model.steps[state.currentIndex + 1];
+    const pauseDuration = nextStep.type === "Mistero" || nextStep.type === "Conclusione" ? 900 : 520;
+    continuationTimer = window.setTimeout(() => {
+      if (runId !== activeSpeechRun) return;
+      state.currentIndex += 1;
+      updateUi({ syncRail: true, announce: true });
+      elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
+      speakCurrent({ continueAutomatically: true });
+    }, pauseDuration);
+  };
+
+  utterance.onerror = (event) => {
+    if (runId !== activeSpeechRun || ["canceled", "interrupted"].includes(event.error)) return;
+    activeUtterance = null;
+    speechStatus = "idle";
+    updatePlayerUi();
+    updateSpeechStatus("Tocca Ascolta per riprovare");
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function toggleSpeech() {
+  if (speechStatus === "speaking") {
+    pauseSpeech();
+    return;
+  }
+  if (speechStatus === "paused") {
+    resumeSpeech();
+    return;
+  }
+  if (state.currentIndex === model.steps.length - 1 && state.completedAt) {
+    state.currentIndex = 0;
+    state.completedAt = null;
+    updateUi({ syncRail: true, announce: true });
+  }
+  speakCurrent({ continueAutomatically: true });
+}
+
+function updatePlayerUi() {
+  const isSpeaking = speechStatus === "speaking";
+  const isPaused = speechStatus === "paused";
+  const isCompleted = Boolean(state.completedAt) && state.currentIndex === model.steps.length - 1;
+
+  elements.playIcon.textContent = isSpeaking ? "Ⅱ" : "▶";
+  elements.playButtonLabel.textContent = isSpeaking
+    ? "Pausa"
+    : isPaused
+      ? "Riprendi"
+      : isCompleted
+        ? "Ricomincia"
+        : "Ascolta";
+  elements.playPauseButton.setAttribute(
+    "aria-label",
+    isSpeaking ? "Metti in pausa" : isPaused ? "Riprendi la voce" : "Ascolta la preghiera",
+  );
+  elements.playPauseButton.classList.toggle("is-playing", isSpeaking);
+}
+
+function changeRosaryConfiguration(change) {
+  stopSpeech();
+  change();
+  state.completedAt = null;
+  rebuildRosary({ resetProgress: true });
+}
+
+elements.playPauseButton.addEventListener("click", toggleSpeech);
+elements.previousButton.addEventListener("click", () => goToStep(state.currentIndex - 1, { announce: true }));
+elements.nextButton.addEventListener("click", () => goToStep(state.currentIndex + 1, { announce: true }));
+
+elements.resetButton.addEventListener("click", () => {
+  if (state.currentIndex > 0 && !window.confirm("Vuoi ricominciare il Rosario dall’inizio?")) return;
+  stopSpeech();
+  state.currentIndex = 0;
+  state.completedAt = null;
+  updateUi({ syncRail: true, announce: true });
+  elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
+});
+
+elements.fullRosaryToggle.addEventListener("change", () => {
+  changeRosaryConfiguration(() => {
+    state.full = elements.fullRosaryToggle.checked;
   });
 });
 
-const startJourneyButton = document.querySelector("#startJourneyButton");
-if (startJourneyButton?.tagName === "BUTTON") {
-  startJourneyButton.addEventListener("click", () => {
-    document.querySelector("#app")?.scrollIntoView({ behavior: "smooth" });
+elements.mysterySetSelect.addEventListener("change", () => {
+  changeRosaryConfiguration(() => {
+    state.setChoice = elements.mysterySetSelect.value;
+    state.shortMysteryIndex = 0;
   });
-}
-
-document.querySelector("#openAppButton")?.addEventListener("click", () => {
-  document.querySelector("#app")?.scrollIntoView({ behavior: "smooth" });
 });
 
-playButton?.addEventListener("click", play);
-pauseButton?.addEventListener("click", pause);
-nextButton?.addEventListener("click", next);
-resetButton?.addEventListener("click", reset);
-fullRosaryToggle?.addEventListener("change", () => refreshSteps());
-knotInput?.addEventListener("change", () => refreshSteps(true));
+elements.shortMysterySelect.addEventListener("change", () => {
+  changeRosaryConfiguration(() => {
+    state.shortMysteryIndex = Number(elements.shortMysterySelect.value) || 0;
+  });
+});
 
-ring?.addEventListener("pointerdown", () => {
+elements.voiceSelect.addEventListener("change", () => {
+  stopSpeech();
+  state.voiceName = elements.voiceSelect.value;
+  updateSpeechStatus();
+  saveState();
+});
+
+elements.speechRateSelect.addEventListener("change", () => {
+  stopSpeech();
+  state.rate = elements.speechRateSelect.value;
+  saveState();
+});
+
+elements.intentionInput.addEventListener("input", () => {
+  elements.speakIntentionToggle.disabled = !elements.intentionInput.value.trim();
+  if (!elements.intentionInput.value.trim() && elements.speakIntentionToggle.checked) {
+    elements.speakIntentionToggle.checked = false;
+    rebuildRosary({ keepStepId: model.steps[state.currentIndex].id });
+  }
+});
+
+elements.intentionInput.addEventListener("change", () => {
+  if (elements.speakIntentionToggle.checked) {
+    rebuildRosary({ keepStepId: model.steps[state.currentIndex].id });
+  }
+});
+
+elements.speakIntentionToggle.addEventListener("change", () => {
+  stopSpeech();
+  rebuildRosary({ keepStepId: model.steps[state.currentIndex].id });
+});
+
+elements.ring.addEventListener("pointerdown", () => {
   window.clearTimeout(railReleaseTimer);
   suppressRailSelection = false;
 });
 
-ring?.addEventListener(
+elements.ring.addEventListener(
   "scroll",
   () => {
-    if (suppressRailSelection) {
-      return;
-    }
+    if (suppressRailSelection) return;
     window.clearTimeout(railScrollTimer);
-    railScrollTimer = window.setTimeout(selectCenteredBead, 110);
+    railScrollTimer = window.setTimeout(selectCenteredBead, 120);
   },
   { passive: true },
 );
 
-ring?.addEventListener("keydown", (event) => {
-  if (!["ArrowUp", "ArrowDown"].includes(event.key)) {
-    return;
-  }
-
+elements.ring.addEventListener("keydown", (event) => {
+  if (!["ArrowUp", "ArrowDown"].includes(event.key)) return;
   event.preventDefault();
   const direction = event.key === "ArrowDown" ? 1 : -1;
-  const activeBeadIndex = steps[currentIndex]?.beadIndex ?? 0;
-  const targetIndex = Math.max(
-    0,
-    Math.min(activeBeadIndex + direction, ring.querySelectorAll(".bead-row").length - 1),
-  );
+  const currentBeadIndex = model.steps[state.currentIndex].beadIndex;
+  const targetIndex = Math.max(0, Math.min(currentBeadIndex + direction, model.beads.length - 1));
   jumpToBead(targetIndex);
 });
 
-window.addEventListener("resize", () => {
-  if (!ring) {
-    return;
-  }
-  renderBeads();
-  updateUi();
+window.addEventListener("resize", () => syncRailToBead(model.steps[state.currentIndex].beadIndex));
+window.addEventListener("pagehide", () => {
+  saveState();
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 });
+
+elements.fullRosaryToggle.checked = state.full;
+elements.mysterySetSelect.value = state.setChoice;
+elements.speechRateSelect.value = ["0.82", "0.88", "0.94", "1"].includes(state.rate) ? state.rate : "0.88";
+state.rate = elements.speechRateSelect.value;
+elements.speakIntentionToggle.disabled = true;
+
+const restoreProgress = canRestoreProgress();
+if (!restoreProgress) state.completedAt = null;
+rebuildRosary({ restoreSaved: restoreProgress });
+loadVoices();
 
 if ("speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = loadVoices;
 }
-
-refreshSteps();
-loadVoices();

@@ -3,116 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#17263a" />
     <meta
       name="description"
-      content="Rosario guidato mobile-first con corona interattiva, testo e sintesi vocale."
+      content="Rosario guidato con misteri del giorno, grani interattivi, avanzamento salvato e guida vocale."
     />
     <title>Rosario guidato · Rosario 2.0</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Castoro+Titling&family=Libre+Baskerville:wght@400;700&family=Manrope:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="rosary-page">
-    <div class="ambient ambient-one"></div>
-    <div class="ambient ambient-two"></div>
-    <div class="grain-overlay"></div>
-
-    <header class="topbar rosary-topbar">
-      <a class="brand" href="index.html" aria-label="Torna alla home">
-        <span class="brand-mark">✦</span>
+  <body class="reader-page">
+    <header class="topbar reader-topbar">
+      <a class="brand" href="index.html" aria-label="Torna alla pagina iniziale">
+        <span class="brand-mark" aria-hidden="true">✦</span>
         <span>Rosario 2.0</span>
       </a>
-      <nav class="nav" aria-label="Navigazione Rosario">
-        <a href="index.html">Home</a>
-        <a href="index.html#app">Sezioni</a>
-      </nav>
-      <span class="status-pill" id="speechSupport">Audio browser</span>
+      <div class="reader-context" aria-live="polite">
+        <span id="setLabel">Misteri del giorno</span>
+        <strong id="speechSupport">Voce automatica</strong>
+      </div>
     </header>
 
-    <main class="rosary-focus" id="rosario">
-      <section class="rosary-layout rosary-layout-dedicated">
-        <article class="prayer-card prayer-card-dedicated">
-          <div class="card-topline">
-            <span id="modeLabel">Rosario breve</span>
-            <span id="durationEstimate">~4 min</span>
-          </div>
-
-          <div class="step-heading">
-            <span id="currentStepType">Pronto</span>
-            <strong id="stepCode">Inizio</strong>
-          </div>
-
-          <h1 id="prayerTitle">Segno della Croce</h1>
-          <p id="prayerText">
-            Nel nome del Padre, del Figlio e dello Spirito Santo. Amen.
-          </p>
-
-          <div class="progress-wrap" aria-label="Avanzamento Rosario">
-            <div class="progress-bar">
-              <span id="progressFill"></span>
+    <main class="reader-main">
+      <section class="reader-layout" aria-label="Lettore del Rosario">
+        <article class="prayer-panel">
+          <div class="prayer-scroll" id="prayerScroll">
+            <div class="card-topline">
+              <span id="modeLabel">Rosario completo</span>
+              <span id="durationEstimate">circa 25 minuti</span>
             </div>
-            <span id="progressLabel">0%</span>
-          </div>
 
-          <details class="prayer-settings">
-            <summary>Intenzione e impostazioni</summary>
-            <div class="settings-content">
-              <label class="field">
-                <span>Il nodo da affidare</span>
-                <input
-                  id="knotInput"
-                  type="text"
-                  inputmode="text"
-                  autocomplete="off"
-                  placeholder="Una decisione, una paura…"
-                />
-              </label>
+            <div class="step-heading">
+              <span id="currentStepType">Inizio</span>
+              <strong id="stepCode">Inizio</strong>
+            </div>
 
-              <div class="settings-row">
-                <label>
-                  <input id="fullRosaryToggle" type="checkbox" />
-                  Rosario completo
-                </label>
-                <label>
-                  Voce
-                  <select id="voiceSelect" aria-label="Seleziona voce"></select>
-                </label>
+            <h1 id="prayerTitle">Segno della Croce</h1>
+            <p id="prayerText">
+              Nel nome del Padre, del Figlio e dello Spirito Santo. Amen.
+            </p>
+
+            <p class="sr-only" id="prayerAnnouncement" aria-live="polite"></p>
+
+            <div class="progress-wrap" aria-label="Avanzamento del Rosario">
+              <div
+                class="progress-bar"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+                id="progressBar"
+              >
+                <span id="progressFill"></span>
               </div>
+              <span id="progressLabel">0%</span>
             </div>
-          </details>
+
+            <details class="prayer-settings">
+              <summary>Scelta dei misteri, voce e intenzione</summary>
+              <div class="settings-content">
+                <div class="settings-grid">
+                  <label class="field compact-field">
+                    <span>Misteri</span>
+                    <select id="mysterySetSelect">
+                      <option value="auto">Automatici per oggi</option>
+                      <option value="joyful">Gaudiosi</option>
+                      <option value="luminous">Luminosi</option>
+                      <option value="sorrowful">Dolorosi</option>
+                      <option value="glorious">Gloriosi</option>
+                    </select>
+                  </label>
+
+                  <label class="switch-field">
+                    <input id="fullRosaryToggle" type="checkbox" checked />
+                    <span>
+                      <strong>Rosario completo</strong>
+                      <small>Cinque misteri</small>
+                    </span>
+                  </label>
+
+                  <label class="field compact-field" id="shortMysteryField" hidden>
+                    <span>Decina</span>
+                    <select id="shortMysterySelect" aria-label="Scegli il mistero della decina"></select>
+                  </label>
+
+                  <label class="field compact-field">
+                    <span>Voce</span>
+                    <select id="voiceSelect" aria-label="Seleziona la voce">
+                      <option value="__auto__">Migliore disponibile</option>
+                    </select>
+                  </label>
+
+                  <label class="field compact-field">
+                    <span>Ritmo</span>
+                    <select id="speechRateSelect" aria-label="Velocità della voce">
+                      <option value="0.82">Molto lento</option>
+                      <option value="0.88" selected>Raccolto</option>
+                      <option value="0.94">Naturale</option>
+                      <option value="1">Normale</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="intention-box">
+                  <label class="field">
+                    <span>Affidamento personale <small>facoltativo e non salvato</small></span>
+                    <textarea
+                      id="intentionInput"
+                      rows="2"
+                      autocomplete="off"
+                      placeholder="Una persona, una decisione, una paura…"
+                    ></textarea>
+                  </label>
+                  <label class="checkbox-field">
+                    <input id="speakIntentionToggle" type="checkbox" />
+                    <span>Inseriscilo nella recita con la voce del dispositivo</span>
+                  </label>
+                </div>
+
+                <button class="text-button danger-text" id="resetButton" type="button">
+                  Ricomincia dall’inizio
+                </button>
+              </div>
+            </details>
+          </div>
+
+          <nav class="reader-player" aria-label="Controlli della recita">
+            <button class="player-side" id="previousButton" type="button" aria-label="Preghiera precedente">
+              <span aria-hidden="true">‹</span>
+              <small>Indietro</small>
+            </button>
+            <button class="play-button" id="playPauseButton" type="button" aria-label="Ascolta la preghiera">
+              <span class="play-icon" aria-hidden="true">▶</span>
+              <strong id="playButtonLabel">Ascolta</strong>
+            </button>
+            <button class="player-side" id="nextButton" type="button" aria-label="Preghiera successiva">
+              <span aria-hidden="true">›</span>
+              <small>Avanti</small>
+            </button>
+          </nav>
         </article>
 
-        <aside class="rosary-stage rosary-stage-dedicated" aria-label="Grani del Rosario">
+        <aside class="bead-stage" aria-label="Grani del Rosario">
           <div class="strand-topline">
             <span>Grani</span>
-            <strong id="currentStepCount">0 / 0</strong>
+            <strong id="currentStepCount">1 di 1</strong>
           </div>
           <div
-            class="rosary-ring rosary-strand"
+            class="rosary-strand"
             id="rosaryRing"
             role="list"
             tabindex="0"
-            aria-label="Scorri i grani del Rosario"
+            aria-label="Scorri verticalmente i grani del Rosario"
           ></div>
           <div class="strand-caption" aria-live="polite">
-            <span>Passaggio</span>
-            <strong id="currentStepTitle">Maria che scioglie i nodi</strong>
+            <span>Ora</span>
+            <strong id="currentStepTitle">Segno della Croce</strong>
           </div>
         </aside>
       </section>
     </main>
 
-    <nav class="mobile-player" aria-label="Controlli Rosario">
-      <button class="primary-button" id="playButton" type="button">Play</button>
-      <button class="ghost-button" id="pauseButton" type="button">Pausa</button>
-      <button class="ghost-button" id="nextButton" type="button">Avanti</button>
-      <button class="ghost-button" id="resetButton" type="button">Reset</button>
-    </nav>
-
+    <script src="rosary-data.js"></script>
     <script src="app.js" defer></script>
+    <script src="pwa.js" defer></script>
   </body>
 </html>
