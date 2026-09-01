@@ -1052,3 +1052,493 @@ select:focus {
     padding: 0.45rem;
   }
 }
+
+/* Rosario reader: testo a sinistra, filo tattile a destra */
+.rosary-page {
+  height: 100svh;
+  min-height: 32rem;
+  padding-bottom: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 6%, rgba(255, 238, 192, 0.78), transparent 24rem),
+    linear-gradient(145deg, #f8f0e3 0%, #dfcdb1 100%);
+}
+
+.rosary-page .topbar {
+  height: 4.5rem;
+  background: rgba(250, 243, 231, 0.88);
+}
+
+.rosary-focus {
+  width: min(1180px, 100%);
+  height: calc(100svh - 4.5rem);
+  margin: 0 auto;
+  padding: clamp(0.75rem, 2vw, 1.35rem);
+}
+
+.rosary-layout-dedicated {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(13rem, 23vw, 18rem);
+  gap: clamp(0.65rem, 1.5vw, 1rem);
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.prayer-card-dedicated {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  gap: clamp(0.8rem, 2vh, 1.2rem);
+  padding: clamp(1.3rem, 3vw, 3rem);
+  padding-bottom: 7.4rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-color: rgba(110, 71, 23, 0.16);
+  border-radius: 30px;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 247, 0.96), rgba(249, 238, 219, 0.9));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(141, 95, 26, 0.32) transparent;
+}
+
+.prayer-card-dedicated .card-topline {
+  flex-direction: row;
+  align-items: center;
+  color: var(--gold-dark);
+}
+
+.step-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.step-heading span {
+  color: var(--rose);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.step-heading strong {
+  padding: 0.42rem 0.68rem;
+  color: var(--paper);
+  background: var(--ink);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.prayer-card-dedicated h1 {
+  max-width: 16ch;
+  margin: 0;
+  font-family: "Castoro Titling", serif;
+  font-size: clamp(2rem, 4.4vw, 4.5rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+}
+
+.prayer-card-dedicated #prayerText {
+  width: min(46rem, 100%);
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+  color: #4f3b30;
+  font-size: clamp(1.05rem, 1.75vw, 1.32rem);
+  line-height: 1.82;
+}
+
+.prayer-card-dedicated .progress-wrap {
+  margin-top: auto;
+}
+
+.prayer-settings {
+  border-top: 1px solid rgba(141, 95, 26, 0.16);
+}
+
+.prayer-settings summary {
+  min-height: 3rem;
+  padding: 0.9rem 0 0.2rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.prayer-settings summary::marker {
+  color: var(--gold-dark);
+}
+
+.settings-content {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.rosary-stage-dedicated {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 247, 234, 0.18);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(85, 113, 145, 0.36), transparent 42%),
+    linear-gradient(165deg, #1e344e 0%, #0e1727 72%);
+  box-shadow: 0 28px 90px rgba(16, 23, 38, 0.28);
+}
+
+.strand-topline,
+.strand-caption {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 1rem 1.1rem;
+  color: rgba(255, 247, 234, 0.7);
+  background: rgba(9, 16, 28, 0.34);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.strand-topline {
+  border-bottom: 1px solid rgba(255, 247, 234, 0.1);
+}
+
+.strand-topline strong {
+  color: #f2c66d;
+}
+
+.strand-caption {
+  display: grid;
+  border-top: 1px solid rgba(255, 247, 234, 0.1);
+  letter-spacing: 0.06em;
+}
+
+.strand-caption strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--paper);
+  font-family: "Libre Baskerville", serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.rosary-stage-dedicated .rosary-ring {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding-block: calc(50% - 1.85rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0;
+  background:
+    linear-gradient(rgba(215, 170, 85, 0.4), rgba(215, 170, 85, 0.4))
+    calc(100% - 2.55rem) 0 / 1px 100% no-repeat;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  transform: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rosary-stage-dedicated .rosary-ring::-webkit-scrollbar {
+  display: none;
+}
+
+.bead-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.4rem;
+  align-items: center;
+  min-height: 3.7rem;
+  padding: 0.2rem 0.35rem 0.2rem 0.85rem;
+  border-radius: 18px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transition: background 180ms ease, opacity 180ms ease;
+}
+
+.bead-code {
+  overflow: hidden;
+  color: rgba(255, 247, 234, 0.44);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 180ms ease, font-size 180ms ease, opacity 180ms ease;
+}
+
+.rosary-strand .bead {
+  position: relative;
+  inset: auto;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 auto;
+  padding: 0;
+  color: transparent;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: none;
+  transform: none;
+}
+
+.rosary-strand .bead::before {
+  width: 1rem;
+  height: 1rem;
+  content: "";
+  border: 1px solid rgba(255, 247, 234, 0.5);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 28%, #fff6d7, #d5a24b 45%, #684018 100%);
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.3);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.rosary-strand .bead.major::before {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: radial-gradient(circle at 30% 28%, #fffdf0, #f1c464 42%, #9a5d1d 100%);
+}
+
+.bead-row.done .bead::before {
+  filter: saturate(0.58) brightness(0.7);
+}
+
+.bead-row.active {
+  background: linear-gradient(90deg, transparent, rgba(255, 247, 234, 0.09));
+}
+
+.bead-row.active .bead-code {
+  color: #f7cf7e;
+  font-size: 0.82rem;
+}
+
+.bead-row.active .bead::before {
+  transform: scale(1.5);
+  box-shadow:
+    0 0 0 0.42rem rgba(255, 246, 211, 0.12),
+    0 0 28px rgba(255, 226, 143, 0.88);
+}
+
+.rosary-strand .bead:focus-visible {
+  outline: 2px solid #f7cf7e;
+  outline-offset: -2px;
+}
+
+.mobile-player {
+  grid-template-columns: 1.35fr 1fr 1fr 0.82fr;
+  max-width: 38rem;
+}
+
+.mobile-player #resetButton {
+  grid-column: auto;
+  min-height: 3.3rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(141, 95, 26, 0.14);
+}
+
+@media (max-width: 860px) {
+  .rosary-page .topbar {
+    height: 4rem;
+    flex-wrap: nowrap;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .rosary-page .brand-mark {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  .rosary-page .status-pill {
+    padding: 0.48rem 0.62rem;
+    font-size: 0.72rem;
+  }
+
+  .rosary-focus {
+    height: calc(100svh - 4rem);
+    padding: 0.55rem;
+  }
+
+  .rosary-layout-dedicated {
+    grid-template-columns: minmax(0, 1fr) minmax(7.4rem, 31vw);
+    gap: 0.5rem;
+  }
+
+  .prayer-card-dedicated {
+    gap: 0.75rem;
+    padding: 1rem 0.85rem 7rem;
+    border-radius: 22px;
+  }
+
+  .prayer-card-dedicated .card-topline {
+    flex-direction: row;
+    align-items: center;
+    font-size: 0.64rem;
+    letter-spacing: 0.08em;
+  }
+
+  .step-heading {
+    flex-wrap: wrap;
+    gap: 0.42rem;
+  }
+
+  .step-heading span,
+  .step-heading strong {
+    font-size: 0.68rem;
+  }
+
+  .prayer-card-dedicated h1 {
+    font-size: clamp(1.42rem, 6.5vw, 2.15rem);
+    line-height: 1.1;
+  }
+
+  .prayer-card-dedicated #prayerText {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+    font-size: 1rem;
+    line-height: 1.68;
+  }
+
+  .progress-wrap {
+    gap: 0.45rem;
+  }
+
+  .prayer-settings summary {
+    min-height: 2.75rem;
+    font-size: 0.78rem;
+  }
+
+  .settings-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rosary-stage-dedicated {
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  .strand-topline,
+  .strand-caption {
+    padding: 0.72rem 0.6rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+  }
+
+  .strand-caption strong {
+    font-size: 0.68rem;
+  }
+
+  .rosary-stage-dedicated .rosary-ring {
+    width: 100%;
+    height: 100%;
+    padding-block: calc(50% - 1.6rem);
+    background-position: calc(100% - 1.7rem) 0;
+  }
+
+  .bead-row {
+    grid-template-columns: minmax(0, 1fr) 3rem;
+    min-height: 3.2rem;
+    padding: 0.15rem 0.1rem 0.15rem 0.25rem;
+    border-radius: 14px;
+  }
+
+  .bead-code {
+    font-size: 0.58rem;
+    letter-spacing: 0;
+  }
+
+  .bead-row.active .bead-code {
+    font-size: 0.69rem;
+  }
+
+  .rosary-strand .bead {
+    width: 2.9rem;
+    height: 2.9rem;
+  }
+
+  .rosary-strand .bead::before {
+    width: 0.78rem;
+    height: 0.78rem;
+  }
+
+  .rosary-strand .bead.major::before {
+    width: 1.08rem;
+    height: 1.08rem;
+  }
+
+  .mobile-player {
+    left: max(0.45rem, env(safe-area-inset-left));
+    right: max(0.45rem, env(safe-area-inset-right));
+    bottom: max(0.45rem, env(safe-area-inset-bottom));
+    grid-template-columns: 1.3fr 1fr 1fr 0.78fr;
+    gap: 0.35rem;
+    padding: 0.42rem;
+    border-radius: 20px;
+  }
+
+  .mobile-player button,
+  .mobile-player #resetButton {
+    min-height: 2.9rem;
+    padding: 0.6rem 0.35rem;
+    font-size: 0.74rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .rosary-layout-dedicated {
+    grid-template-columns: minmax(0, 1fr) 7.2rem;
+  }
+
+  .prayer-card-dedicated {
+    padding-inline: 0.72rem;
+  }
+
+  .strand-caption span {
+    display: none;
+  }
+
+  .mobile-player button,
+  .mobile-player #resetButton {
+    font-size: 0.68rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rosary-stage-dedicated .rosary-ring {
+    scroll-behavior: auto;
+  }
+
+  .bead-row,
+  .bead-code,
+  .rosary-strand .bead::before {
+    transition: none;
+  }
+}

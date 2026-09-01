@@ -41,6 +41,9 @@ let steps = [];
 let currentIndex = 0;
 let isPlaying = false;
 let voices = [];
+let railScrollTimer;
+let railReleaseTimer;
+let suppressRailSelection = false;
 
 const ring = document.querySelector("#rosaryRing");
 const prayerTitle = document.querySelector("#prayerTitle");
@@ -48,6 +51,7 @@ const prayerText = document.querySelector("#prayerText");
 const currentStepType = document.querySelector("#currentStepType");
 const currentStepTitle = document.querySelector("#currentStepTitle");
 const currentStepCount = document.querySelector("#currentStepCount");
+const stepCode = document.querySelector("#stepCode");
 const progressFill = document.querySelector("#progressFill");
 const progressLabel = document.querySelector("#progressLabel");
 const playButton = document.querySelector("#playButton");
@@ -61,9 +65,9 @@ const knotInput = document.querySelector("#knotInput");
 const modeLabel = document.querySelector("#modeLabel");
 const durationEstimate = document.querySelector("#durationEstimate");
 
-function createStep(type, title, text, beadIndex = null) {
+function createStep(type, title, text, beadIndex = null, context = {}) {
   const visibleBeadIndex = beadIndex === null ? null : Math.min(beadIndex, beadCount - 1);
-  return { type, title, text, beadIndex: visibleBeadIndex };
+  return { type, title, text, beadIndex: visibleBeadIndex, ...context };
 }
 
 function buildSteps(useFullRosary = false) {
@@ -82,9 +86,14 @@ function buildSteps(useFullRosary = false) {
         `${decadeIndex + 1}. ${mystery}`,
         `Meditiamo: ${mystery}. ${prayers.undoer}`,
         decadeBeadIndex,
+        { mysteryNumber: decadeIndex + 1 },
       ),
     );
-    nextSteps.push(createStep("Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex));
+    nextSteps.push(
+      createStep("Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex, {
+        mysteryNumber: decadeIndex + 1,
+      }),
+    );
 
     for (let hailIndex = 1; hailIndex <= 10; hailIndex += 1) {
       nextSteps.push(
@@ -93,12 +102,22 @@ function buildSteps(useFullRosary = false) {
           `Ave Maria ${hailIndex} / 10`,
           prayers.hailMary,
           getHailMaryBeadIndex(decadeIndex, hailIndex - 1),
+          { mysteryNumber: decadeIndex + 1, repetition: hailIndex },
         ),
       );
     }
 
-    nextSteps.push(createStep("Gloria", "Gloria al Padre", prayers.glory, finalBeadIndex));
-    nextSteps.push(createStep("Fatima", "Preghiera di Fatima", prayers.fatima, finalBeadIndex));
+    const closingBeadIndex = getFinalBeadIndex(decadeIndex + 1);
+    nextSteps.push(
+      createStep("Gloria", "Gloria al Padre", prayers.glory, closingBeadIndex, {
+        mysteryNumber: decadeIndex + 1,
+      }),
+    );
+    nextSteps.push(
+      createStep("Fatima", "Preghiera di Fatima", prayers.fatima, closingBeadIndex, {
+        mysteryNumber: decadeIndex + 1,
+      }),
+    );
   });
 
   nextSteps.push(
@@ -138,22 +157,72 @@ function renderBeads() {
   }
 
   ring.innerHTML = "";
-  const ringSize = Math.min(ring.clientWidth || 500, ring.clientHeight || 500);
-  const radius = Math.max(118, ringSize / 2 - 28);
+  const useFullRosary = Boolean(fullRosaryToggle?.checked);
+  const visibleBeadCount = useFullRosary
+    ? beadCount
+    : getFinalBeadIndex(shortMysteries.length) + 1;
 
-  for (let index = 0; index < beadCount; index += 1) {
-    const angle = -92 + index * (360 / beadCount);
+  for (let index = 0; index < visibleBeadCount; index += 1) {
+    const row = document.createElement("div");
     const bead = document.createElement("button");
+    const code = document.createElement("span");
     const isMajor = rosaryBeads[index].kind === "large";
-    const transform = `rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)`;
+    const isShortFinal = !useFullRosary && index === visibleBeadCount - 1;
+
+    row.className = "bead-row";
+    row.dataset.beadIndex = String(index);
+    row.setAttribute("role", "listitem");
+
+    code.className = "bead-code";
+    code.textContent = getBeadCode(index, isShortFinal);
+    code.dataset.defaultCode = code.textContent;
+
     bead.className = `bead${isMajor ? " major" : ""}`;
     bead.type = "button";
-    bead.style.setProperty("--bead-transform", transform);
-    bead.style.transform = transform;
-    bead.setAttribute("aria-label", getBeadLabel(index));
+    bead.setAttribute("aria-label", isShortFinal ? "Grano finale" : getBeadLabel(index));
     bead.addEventListener("click", () => jumpToBead(index));
-    ring.appendChild(bead);
+
+    row.append(code, bead);
+    ring.appendChild(row);
   }
+}
+
+function getBeadCode(index, isShortFinal = false) {
+  if (isShortFinal || rosaryBeads[index].role === "final") {
+    return "Fine";
+  }
+
+  const bead = rosaryBeads[index];
+  if (bead.role === "decade") {
+    return `Mis.${bead.decadeIndex + 1}`;
+  }
+  if (bead.role === "hail-mary") {
+    return `Mis.${bead.decadeIndex + 1}-${bead.hailIndex + 1}`;
+  }
+  return index === 0 ? "Inizio" : "Apertura";
+}
+
+function getStepCode(step) {
+  if (step.mysteryNumber) {
+    if (step.repetition) {
+      return `Mis.${step.mysteryNumber}-${step.repetition}`;
+    }
+
+    const suffixes = {
+      "Padre Nostro": "P",
+      Gloria: "G",
+      Fatima: "F",
+    };
+    const suffix = suffixes[step.type];
+    return suffix ? `Mis.${step.mysteryNumber}-${suffix}` : `Mis.${step.mysteryNumber}`;
+  }
+
+  const labels = {
+    Intro: "Inizio",
+    Invocazione: "Nodo",
+    Finale: "Fine",
+  };
+  return labels[step.type] || step.type;
 }
 
 function getBeadLabel(index) {
@@ -175,11 +244,12 @@ function refreshSteps(keepIndex = false) {
   const useFullRosary = Boolean(fullRosaryToggle?.checked);
   steps = buildSteps(useFullRosary);
   modeLabel.textContent = useFullRosary ? "Rosario completo" : "Rosario breve";
-  durationEstimate.textContent = useFullRosary ? "~22 min stimati" : "~4 min demo";
+  durationEstimate.textContent = useFullRosary ? "~22 min" : "~4 min";
   if (!keepIndex) {
     currentIndex = 0;
   }
   currentIndex = Math.min(currentIndex, steps.length - 1);
+  renderBeads();
   updateUi();
 }
 
@@ -195,14 +265,73 @@ function updateUi() {
   prayerText.textContent = currentStep.text;
   currentStepType.textContent = currentStep.type;
   currentStepTitle.textContent = currentStep.title;
-  currentStepCount.textContent = `${currentIndex + 1} / ${steps.length}`;
+  currentStepCount.textContent = `${currentIndex + 1}/${steps.length}`;
+  stepCode.textContent = getStepCode(currentStep);
   progressFill.style.width = `${progress}%`;
   progressLabel.textContent = `${progress}%`;
 
-  document.querySelectorAll(".bead").forEach((bead, beadIndex) => {
-    bead.classList.toggle("active", beadIndex === currentStep.beadIndex);
-    bead.classList.toggle("done", beadIndex < currentStep.beadIndex);
+  document.querySelectorAll(".bead-row").forEach((row) => {
+    const beadIndex = Number(row.dataset.beadIndex);
+    const bead = row.querySelector(".bead");
+    const code = row.querySelector(".bead-code");
+    const isActive = beadIndex === currentStep.beadIndex;
+
+    row.classList.toggle("active", isActive);
+    row.classList.toggle("done", beadIndex < currentStep.beadIndex);
+    bead?.setAttribute("aria-current", isActive ? "step" : "false");
+    if (code) {
+      code.textContent = isActive ? getStepCode(currentStep) : code.dataset.defaultCode;
+    }
   });
+
+  syncRailToBead(currentStep.beadIndex);
+}
+
+function syncRailToBead(beadIndex) {
+  if (!ring || beadIndex === null) {
+    return;
+  }
+
+  const row = ring.querySelector(`[data-bead-index="${beadIndex}"]`);
+  if (!row) {
+    return;
+  }
+
+  const nextTop = row.offsetTop - (ring.clientHeight - row.clientHeight) / 2;
+  if (Math.abs(ring.scrollTop - nextTop) < 2) {
+    return;
+  }
+
+  suppressRailSelection = true;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  ring.scrollTo({ top: nextTop, behavior: reduceMotion ? "auto" : "smooth" });
+  window.clearTimeout(railReleaseTimer);
+  railReleaseTimer = window.setTimeout(() => {
+    suppressRailSelection = false;
+  }, reduceMotion ? 80 : 420);
+}
+
+function selectCenteredBead() {
+  if (!ring || suppressRailSelection) {
+    return;
+  }
+
+  const rows = [...ring.querySelectorAll(".bead-row")];
+  const railCenter = ring.scrollTop + ring.clientHeight / 2;
+  const closestRow = rows.reduce((closest, row) => {
+    const rowCenter = row.offsetTop + row.clientHeight / 2;
+    const distance = Math.abs(rowCenter - railCenter);
+    return !closest || distance < closest.distance ? { row, distance } : closest;
+  }, null);
+
+  if (!closestRow) {
+    return;
+  }
+
+  const beadIndex = Number(closestRow.row.dataset.beadIndex);
+  if (steps[currentIndex]?.beadIndex !== beadIndex) {
+    jumpToBead(beadIndex, { fromRail: true });
+  }
 }
 
 function speakCurrent() {
@@ -272,12 +401,18 @@ function reset() {
   refreshSteps();
 }
 
-function jumpToBead(beadIndex) {
-  const nextIndex = steps.findIndex((step) => step.beadIndex >= beadIndex);
+function jumpToBead(beadIndex, { fromRail = false } = {}) {
+  const exactIndex = steps.findIndex((step) => step.beadIndex === beadIndex);
+  const nextIndex = exactIndex >= 0
+    ? exactIndex
+    : steps.findIndex((step) => step.beadIndex > beadIndex);
   if (nextIndex >= 0) {
     pause();
     currentIndex = nextIndex;
     updateUi();
+    if (fromRail && "vibrate" in navigator) {
+      navigator.vibrate(8);
+    }
   }
 }
 
@@ -345,6 +480,38 @@ resetButton?.addEventListener("click", reset);
 fullRosaryToggle?.addEventListener("change", () => refreshSteps());
 knotInput?.addEventListener("change", () => refreshSteps(true));
 
+ring?.addEventListener("pointerdown", () => {
+  window.clearTimeout(railReleaseTimer);
+  suppressRailSelection = false;
+});
+
+ring?.addEventListener(
+  "scroll",
+  () => {
+    if (suppressRailSelection) {
+      return;
+    }
+    window.clearTimeout(railScrollTimer);
+    railScrollTimer = window.setTimeout(selectCenteredBead, 110);
+  },
+  { passive: true },
+);
+
+ring?.addEventListener("keydown", (event) => {
+  if (!["ArrowUp", "ArrowDown"].includes(event.key)) {
+    return;
+  }
+
+  event.preventDefault();
+  const direction = event.key === "ArrowDown" ? 1 : -1;
+  const activeBeadIndex = steps[currentIndex]?.beadIndex ?? 0;
+  const targetIndex = Math.max(
+    0,
+    Math.min(activeBeadIndex + direction, ring.querySelectorAll(".bead-row").length - 1),
+  );
+  jumpToBead(targetIndex);
+});
+
 window.addEventListener("resize", () => {
   if (!ring) {
     return;
@@ -357,6 +524,5 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = loadVoices;
 }
 
-renderBeads();
 refreshSteps();
 loadVoices();

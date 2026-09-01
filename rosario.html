@@ -34,51 +34,22 @@
     </header>
 
     <main class="rosary-focus" id="rosario">
-      <section class="rosary-intro">
-        <p class="eyebrow">recita guidata</p>
-        <h1>Rosario</h1>
-        <p>
-          Versione mobile-first: corona grande, testo comodo da leggere, audio
-          del browser e comandi fissi in basso.
-        </p>
-      </section>
-
       <section class="rosary-layout rosary-layout-dedicated">
-        <div class="rosary-stage rosary-stage-dedicated">
-          <div class="moon"></div>
-          <div class="rosary-ring" id="rosaryRing" aria-label="Corona del Rosario"></div>
-          <div class="cross" aria-hidden="true">
-            <span></span>
-            <span></span>
-          </div>
-          <div class="center-medallion">
-            <span id="currentStepType">Pronto</span>
-            <strong id="currentStepTitle">Maria che scioglie i nodi</strong>
-            <small id="currentStepCount">0 / 0</small>
-          </div>
-        </div>
-
         <article class="prayer-card prayer-card-dedicated">
           <div class="card-topline">
             <span id="modeLabel">Rosario breve</span>
-            <span id="durationEstimate">~4 min demo</span>
+            <span id="durationEstimate">~4 min</span>
           </div>
-          <h2 id="prayerTitle">Premi play per iniziare</h2>
-          <p id="prayerText">
-            La recita avanza automaticamente: ogni grano si illumina mentre la
-            sintesi vocale legge la preghiera.
-          </p>
 
-          <label class="field">
-            <span>Il nodo da affidare</span>
-            <input
-              id="knotInput"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              placeholder="es. una decisione, una paura..."
-            />
-          </label>
+          <div class="step-heading">
+            <span id="currentStepType">Pronto</span>
+            <strong id="stepCode">Inizio</strong>
+          </div>
+
+          <h1 id="prayerTitle">Segno della Croce</h1>
+          <p id="prayerText">
+            Nel nome del Padre, del Figlio e dello Spirito Santo. Amen.
+          </p>
 
           <div class="progress-wrap" aria-label="Avanzamento Rosario">
             <div class="progress-bar">
@@ -87,17 +58,51 @@
             <span id="progressLabel">0%</span>
           </div>
 
-          <div class="settings-row">
-            <label>
-              <input id="fullRosaryToggle" type="checkbox" />
-              Rosario completo
-            </label>
-            <label>
-              Voce
-              <select id="voiceSelect" aria-label="Seleziona voce"></select>
-            </label>
-          </div>
+          <details class="prayer-settings">
+            <summary>Intenzione e impostazioni</summary>
+            <div class="settings-content">
+              <label class="field">
+                <span>Il nodo da affidare</span>
+                <input
+                  id="knotInput"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  placeholder="Una decisione, una paura…"
+                />
+              </label>
+
+              <div class="settings-row">
+                <label>
+                  <input id="fullRosaryToggle" type="checkbox" />
+                  Rosario completo
+                </label>
+                <label>
+                  Voce
+                  <select id="voiceSelect" aria-label="Seleziona voce"></select>
+                </label>
+              </div>
+            </div>
+          </details>
         </article>
+
+        <aside class="rosary-stage rosary-stage-dedicated" aria-label="Grani del Rosario">
+          <div class="strand-topline">
+            <span>Grani</span>
+            <strong id="currentStepCount">0 / 0</strong>
+          </div>
+          <div
+            class="rosary-ring rosary-strand"
+            id="rosaryRing"
+            role="list"
+            tabindex="0"
+            aria-label="Scorri i grani del Rosario"
+          ></div>
+          <div class="strand-caption" aria-live="polite">
+            <span>Passaggio</span>
+            <strong id="currentStepTitle">Maria che scioglie i nodi</strong>
+          </div>
+        </aside>
       </section>
     </main>
 
