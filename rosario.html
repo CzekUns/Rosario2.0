@@ -12,6 +12,7 @@
     <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="grip-window.css" />
   </head>
   <body class="reader-page">
     <header class="topbar reader-topbar">
@@ -148,14 +149,14 @@
           </div>
         </article>
 
-        <aside class="bead-stage" aria-label="Grani del Rosario">
+        <aside class="bead-stage" aria-label="Finestra di presa del Rosario">
           <div class="strand-topline">
-            <span>Presa</span>
+            <span>Corona</span>
             <strong id="currentStepCount">1 di 1</strong>
           </div>
           <div class="grip-zone" aria-hidden="true">
             <span></span>
-            <small id="gripInstruction">Appoggia il pollice</small>
+            <small id="gripInstruction">Tieni e tira ↑</small>
           </div>
           <div
             class="rosary-strand"
@@ -163,7 +164,7 @@
             role="button"
             tabindex="0"
             aria-roledescription="filo del Rosario"
-            aria-label="Appoggia il pollice sul grano attivo"
+            aria-label="Tieni il grano attivo sotto il pollice e tiralo verso l’alto"
           ></div>
           <div class="strand-caption" aria-live="polite">
             <span>Ora</span>
@@ -175,6 +176,7 @@
 
     <script src="rosary-data.js"></script>
     <script src="app.js" defer></script>
+    <script src="grip-window.js" defer></script>
     <script src="pwa.js" defer></script>
   </body>
 </html>

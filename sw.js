@@ -1,14 +1,16 @@
 "use strict";
 
-const CACHE_NAME = "rosario-2-v3-20260902";
+const CACHE_NAME = "rosario-2-v4-20260902";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./rosario.html",
   "./styles.css",
+  "./grip-window.css",
   "./rosary-data.js",
   "./home.js",
   "./app.js",
+  "./grip-window.js",
   "./pwa.js",
   "./manifest.webmanifest",
   "./assets/app-icon.svg",

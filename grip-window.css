@@ -1,0 +1,270 @@
+/* Finestra di presa: il Rosario non è una lista da scorrere, ma un filo da tirare un grano alla volta. */
+
+.grip-window {
+  --thumb-anchor: clamp(2.8rem, 7vh, 5rem);
+}
+
+.grip-window .rosary-strand {
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
+      calc(100% - 3.3rem) 0 / 1px 100% no-repeat,
+    linear-gradient(#4b2d1a, #2d190f)
+      calc(100% - 3.3rem) 0 / 6px 100% no-repeat;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.32) 8%,
+    #000 18%,
+    #000 82%,
+    rgba(0, 0, 0, 0.34) 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.32) 8%,
+    #000 18%,
+    #000 82%,
+    rgba(0, 0, 0, 0.34) 92%,
+    transparent 100%
+  );
+}
+
+/* Tutti i grani continuano a esistere nella sequenza, ma la finestra ne lascia percepire solo cinque. */
+.grip-window .bead-row {
+  flex-basis: 4.05rem;
+  min-height: 4.05rem;
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(2.4px);
+  transform: translateY(var(--thumb-anchor));
+  transition:
+    opacity 210ms ease,
+    filter 210ms ease,
+    transform 230ms cubic-bezier(0.22, 0.78, 0.22, 1),
+    visibility 0s linear 210ms;
+}
+
+.grip-window .bead-row:has(+ .bead-row + .bead-row.active),
+.grip-window .bead-row:has(+ .bead-row.active),
+.grip-window .bead-row.active,
+.grip-window .bead-row.active + .bead-row,
+.grip-window .bead-row.active + .bead-row + .bead-row {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.grip-window .bead-row:has(+ .bead-row + .bead-row.active),
+.grip-window .bead-row.active + .bead-row + .bead-row {
+  opacity: 0.24;
+  filter: blur(2.2px);
+}
+
+.grip-window .bead-row:has(+ .bead-row.active),
+.grip-window .bead-row.active + .bead-row {
+  opacity: 0.58;
+  filter: blur(0.65px);
+}
+
+.grip-window .bead-row.active {
+  opacity: 1;
+  filter: none;
+  background: radial-gradient(circle at 78% 50%, rgba(255, 229, 158, 0.13), transparent 42%);
+}
+
+.grip-window .rosary-strand.is-gripping .bead-row {
+  transform: translateY(calc(var(--thumb-anchor) + var(--grip-drag)));
+  transition: none;
+}
+
+/* Il codice appartiene al solo grano trattenuto: gli altri sono materia, non controlli UI. */
+.grip-window .bead-code {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(0.5rem);
+  transition: opacity 160ms ease, transform 180ms ease;
+}
+
+.grip-window .bead-row.active .bead-code {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+  color: #ffe6a3;
+  font-size: 0.82rem;
+  text-shadow: 0 1px 10px rgba(255, 208, 103, 0.18);
+}
+
+/* Grani grandi, tridimensionali, simili a legno d'ulivo. */
+.grip-window .bead {
+  width: 5rem;
+  height: 4rem;
+}
+
+.grip-window .bead::before {
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1px solid rgba(255, 236, 189, 0.54);
+  background:
+    radial-gradient(circle at 29% 23%, rgba(255, 251, 220, 0.96) 0 5%, transparent 6%),
+    repeating-linear-gradient(17deg, rgba(74, 41, 19, 0.1) 0 1px, transparent 1px 5px),
+    radial-gradient(circle at 34% 28%, #d9ad63 0 12%, #b67a37 43%, #805027 70%, #4a2b19 100%);
+  box-shadow:
+    inset -0.38rem -0.42rem 0.62rem rgba(48, 25, 11, 0.46),
+    inset 0.28rem 0.24rem 0.4rem rgba(255, 238, 184, 0.3),
+    0 0.65rem 1.15rem rgba(0, 0, 0, 0.42);
+}
+
+.grip-window .bead::after {
+  position: absolute;
+  z-index: 2;
+  width: 0.34rem;
+  height: 0.34rem;
+  content: "";
+  border: 1px solid rgba(246, 210, 145, 0.2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #1e100a 0 45%, #6b4225 50% 72%, #2a160d 74%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+  transition: transform 180ms ease;
+}
+
+.grip-window .bead.major::before {
+  width: 2.72rem;
+  height: 2.72rem;
+  background:
+    radial-gradient(circle at 29% 23%, rgba(255, 252, 225, 0.98) 0 5%, transparent 6%),
+    repeating-linear-gradient(17deg, rgba(78, 43, 18, 0.1) 0 1px, transparent 1px 5px),
+    radial-gradient(circle at 34% 28%, #e1bb70 0 12%, #bc7e38 43%, #87552a 70%, #4b2b19 100%);
+}
+
+.grip-window .bead-row:has(+ .bead-row + .bead-row.active) .bead::before,
+.grip-window .bead-row.active + .bead-row + .bead-row .bead::before {
+  transform: scale(0.78);
+}
+
+.grip-window .bead-row:has(+ .bead-row.active) .bead::before,
+.grip-window .bead-row.active + .bead-row .bead::before {
+  transform: scale(0.92);
+}
+
+.grip-window .bead-row.active .bead::before {
+  transform: scale(1.38);
+  box-shadow:
+    inset -0.4rem -0.44rem 0.64rem rgba(48, 25, 11, 0.42),
+    inset 0.28rem 0.24rem 0.42rem rgba(255, 241, 194, 0.34),
+    0 0 0 0.42rem rgba(255, 233, 174, 0.065),
+    0 0 24px rgba(223, 178, 88, 0.38),
+    0 0.75rem 1.25rem rgba(0, 0, 0, 0.43);
+}
+
+.grip-window .bead-row.active .bead::after {
+  transform: scale(1.38);
+}
+
+.grip-window.can-grip .bead-row.active .bead::before {
+  animation: grip-ready-pulse 1.9s ease-in-out infinite;
+  box-shadow:
+    inset -0.4rem -0.44rem 0.64rem rgba(48, 25, 11, 0.42),
+    inset 0.28rem 0.24rem 0.42rem rgba(255, 241, 194, 0.36),
+    0 0 0 0.48rem rgba(255, 232, 164, 0.1),
+    0 0 30px rgba(255, 211, 113, 0.54),
+    0 0.75rem 1.25rem rgba(0, 0, 0, 0.43);
+}
+
+.grip-window.is-gripping .bead-row.active .bead::before {
+  animation: none;
+  transform: scale(1.29);
+}
+
+.grip-window.grip-ready .bead-row.active .bead::before {
+  transform: scale(1.46);
+  box-shadow:
+    inset -0.38rem -0.42rem 0.62rem rgba(48, 25, 11, 0.4),
+    inset 0.28rem 0.24rem 0.42rem rgba(255, 245, 205, 0.38),
+    0 0 0 0.62rem rgba(255, 231, 160, 0.13),
+    0 0 38px rgba(255, 214, 117, 0.7),
+    0 0.75rem 1.25rem rgba(0, 0, 0, 0.4);
+}
+
+/* La vecchia sagoma di presa sparisce: il bersaglio è il grano stesso. */
+.grip-window .grip-zone {
+  top: calc(50% + var(--thumb-anchor));
+  right: 0.1rem;
+  width: 6rem;
+  height: 4rem;
+  transform: translateY(-50%);
+}
+
+.grip-window .grip-zone::before,
+.grip-window .grip-zone > span {
+  display: none;
+}
+
+.grip-window .grip-zone small {
+  right: 0.15rem;
+  bottom: -2.15rem;
+  width: 5.7rem;
+  color: rgba(255, 247, 224, 0.7);
+  font-size: 0.64rem;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.42);
+}
+
+@keyframes grip-ready-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.1); }
+}
+
+@media (max-width: 760px) {
+  .grip-window {
+    --thumb-anchor: clamp(2.7rem, 10vh, 4.7rem);
+  }
+
+  .grip-window .rosary-strand {
+    background:
+      linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
+        calc(100% - 2.55rem) 0 / 1px 100% no-repeat,
+      linear-gradient(#4b2d1a, #2d190f)
+        calc(100% - 2.55rem) 0 / 5px 100% no-repeat;
+  }
+
+  .grip-window .bead-row {
+    flex-basis: 3.9rem;
+    min-height: 3.9rem;
+  }
+
+  .grip-window .bead {
+    width: 4.65rem;
+    height: 3.9rem;
+  }
+
+  .grip-window .bead::before {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .grip-window .bead.major::before {
+    width: 2.52rem;
+    height: 2.52rem;
+  }
+
+  .grip-window .bead-row.active .bead-code {
+    font-size: 0.75rem;
+  }
+
+  .grip-window .grip-zone {
+    width: 5rem;
+  }
+
+  .grip-window .grip-zone small {
+    right: 0;
+    width: 4.9rem;
+    font-size: 0.59rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grip-window.can-grip .bead-row.active .bead::before {
+    animation: none;
+  }
+}

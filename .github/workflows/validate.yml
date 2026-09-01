@@ -21,9 +21,11 @@ jobs:
           node --check rosary-data.js
           node --check home.js
           node --check app.js
+          node --check grip-window.js
           node --check pwa.js
           node --check sw.js
       - name: Test rosary sequence and reader interaction
         run: |
           node tests/rosary-data.test.js
           node tests/reader-contract.test.js
+          node tests/grip-window-contract.test.js
