@@ -12,19 +12,20 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.23;
+  opacity: 0.32;
+  mix-blend-mode: multiply;
 }
 
 .rosary-backdrop-svg {
   position: absolute;
-  top: -8%;
-  right: -7%;
-  width: min(78vw, 58rem);
-  height: 122%;
+  top: -5%;
+  right: 1%;
+  width: min(84vw, 62rem);
+  height: 116%;
   overflow: visible;
-  transform: rotate(-8deg) scale(1.06);
+  transform: rotate(-7deg) scale(1.02);
   transform-origin: 58% 54%;
-  filter: sepia(0.32) saturate(0.72) contrast(0.92);
+  filter: sepia(0.36) saturate(0.82) contrast(1.08);
 }
 
 .rosary-backdrop-group {
@@ -34,7 +35,7 @@
 .rosary-backdrop-cord,
 .rosary-backdrop-tail {
   fill: none;
-  stroke: rgba(91, 57, 31, 0.92);
+  stroke: rgba(91, 57, 31, 0.98);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -48,68 +49,68 @@
 }
 
 .rosary-backdrop-bead {
-  fill: rgba(130, 84, 42, 0.9);
-  stroke: rgba(79, 47, 24, 0.88);
+  fill: rgba(130, 84, 42, 0.95);
+  stroke: rgba(79, 47, 24, 0.94);
   stroke-width: 3;
 }
 
 .rosary-backdrop-bead.major {
-  fill: rgba(151, 101, 49, 0.94);
+  fill: rgba(151, 101, 49, 0.98);
   stroke-width: 4;
 }
 
 .rosary-backdrop-medal {
-  fill: rgba(139, 91, 43, 0.88);
-  stroke: rgba(78, 47, 24, 0.9);
+  fill: rgba(139, 91, 43, 0.96);
+  stroke: rgba(78, 47, 24, 0.96);
   stroke-width: 5;
 }
 
 .rosary-backdrop-cross {
-  fill: rgba(117, 72, 35, 0.92);
+  fill: rgba(117, 72, 35, 0.98);
 }
 
 .rosary-backdrop.jolt .rosary-backdrop-group {
   animation: rosary-backdrop-jolt 280ms cubic-bezier(0.2, 0.74, 0.26, 1);
 }
 
-/* Le superfici del lettore diventano vetro caldo: il Rosario di sfondo deve attraversarle senza compromettere il testo. */
+/* Le superfici del lettore sono davvero traslucide: niente blur forte che cancelli la corona dietro. */
 .reader-page .reader-topbar {
-  background: rgba(255, 250, 240, 0.68);
-  -webkit-backdrop-filter: blur(14px) saturate(0.9);
-  backdrop-filter: blur(14px) saturate(0.9);
+  background: rgba(255, 250, 240, 0.34);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .reader-page .prayer-panel {
-  background: rgba(255, 252, 246, 0.6);
-  -webkit-backdrop-filter: blur(8px) saturate(0.9);
-  backdrop-filter: blur(8px) saturate(0.9);
+  background: rgba(255, 252, 246, 0.26);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .reader-page .reader-player {
-  background: rgba(255, 250, 240, 0.7);
-  -webkit-backdrop-filter: blur(12px) saturate(0.92);
-  backdrop-filter: blur(12px) saturate(0.92);
+  background: rgba(255, 250, 240, 0.34);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .reader-page .interaction-mode-field,
 .reader-page .switch-field {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .reader-page .field select,
 .reader-page .field textarea,
 .reader-page .interaction-mode-field select {
-  background: rgba(255, 252, 246, 0.72);
+  background: rgba(255, 252, 246, 0.46);
 }
 
 .reader-page .intention-box {
-  background: rgba(145, 75, 77, 0.025);
+  background: rgba(145, 75, 77, 0.018);
 }
 
 .reader-page .step-heading > strong {
-  background: rgba(36, 25, 18, 0.82);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: rgba(36, 25, 18, 0.74);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* La finestra non decide piu quanti grani esistono: mostra tutti quelli che fisicamente entrano nel lato presa. */
@@ -186,25 +187,27 @@
 
 @media (max-width: 760px) {
   .rosary-backdrop {
-    opacity: 0.2;
+    opacity: 0.4;
   }
 
   .rosary-backdrop-svg {
-    top: -4%;
-    right: -38%;
-    width: 128vw;
-    height: 116%;
-    transform: rotate(-10deg) scale(1.04);
+    top: -2%;
+    right: -4%;
+    width: 112vw;
+    height: 108%;
+    transform: rotate(-9deg) scale(1);
   }
 
   .reader-page .prayer-panel {
-    background: rgba(255, 252, 246, 0.56);
-    -webkit-backdrop-filter: blur(6px) saturate(0.9);
-    backdrop-filter: blur(6px) saturate(0.9);
+    background: rgba(255, 252, 246, 0.22);
   }
 
   .reader-page .reader-player {
-    background: rgba(255, 250, 240, 0.66);
+    background: rgba(255, 250, 240, 0.3);
+  }
+
+  .reader-page .reader-topbar {
+    background: rgba(255, 250, 240, 0.3);
   }
 
   .grip-window .bead.major::before {
