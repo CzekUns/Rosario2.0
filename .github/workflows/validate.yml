@@ -22,6 +22,7 @@ jobs:
           node --check home.js
           node --check app.js
           node --check grip-window.js
+          node --check rosary-atmosphere.js
           node --check pwa.js
           node --check sw.js
       - name: Test rosary sequence and reader interaction
