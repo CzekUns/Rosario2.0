@@ -12,7 +12,7 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: 0.16;
+  opacity: 0.23;
 }
 
 .rosary-backdrop-svg {
@@ -70,6 +70,46 @@
 
 .rosary-backdrop.jolt .rosary-backdrop-group {
   animation: rosary-backdrop-jolt 280ms cubic-bezier(0.2, 0.74, 0.26, 1);
+}
+
+/* Le superfici del lettore diventano vetro caldo: il Rosario di sfondo deve attraversarle senza compromettere il testo. */
+.reader-page .reader-topbar {
+  background: rgba(255, 250, 240, 0.68);
+  -webkit-backdrop-filter: blur(14px) saturate(0.9);
+  backdrop-filter: blur(14px) saturate(0.9);
+}
+
+.reader-page .prayer-panel {
+  background: rgba(255, 252, 246, 0.6);
+  -webkit-backdrop-filter: blur(8px) saturate(0.9);
+  backdrop-filter: blur(8px) saturate(0.9);
+}
+
+.reader-page .reader-player {
+  background: rgba(255, 250, 240, 0.7);
+  -webkit-backdrop-filter: blur(12px) saturate(0.92);
+  backdrop-filter: blur(12px) saturate(0.92);
+}
+
+.reader-page .interaction-mode-field,
+.reader-page .switch-field {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.reader-page .field select,
+.reader-page .field textarea,
+.reader-page .interaction-mode-field select {
+  background: rgba(255, 252, 246, 0.72);
+}
+
+.reader-page .intention-box {
+  background: rgba(145, 75, 77, 0.025);
+}
+
+.reader-page .step-heading > strong {
+  background: rgba(36, 25, 18, 0.82);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 /* La finestra non decide piu quanti grani esistono: mostra tutti quelli che fisicamente entrano nel lato presa. */
@@ -146,7 +186,7 @@
 
 @media (max-width: 760px) {
   .rosary-backdrop {
-    opacity: 0.13;
+    opacity: 0.2;
   }
 
   .rosary-backdrop-svg {
@@ -155,6 +195,16 @@
     width: 128vw;
     height: 116%;
     transform: rotate(-10deg) scale(1.04);
+  }
+
+  .reader-page .prayer-panel {
+    background: rgba(255, 252, 246, 0.56);
+    -webkit-backdrop-filter: blur(6px) saturate(0.9);
+    backdrop-filter: blur(6px) saturate(0.9);
+  }
+
+  .reader-page .reader-player {
+    background: rgba(255, 250, 240, 0.66);
   }
 
   .grip-window .bead.major::before {
