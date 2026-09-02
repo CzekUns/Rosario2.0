@@ -8,7 +8,9 @@
   const HAPTIC_THRESHOLD = 34;
   let hapticGesture = null;
 
-  stage.classList.add("grip-window");
+  // Mantiene il layout base stabile: la vecchia classe grip-window applicava
+  // maschere e traslazioni dopo il primo frame, facendo sparire i grani.
+  stage.classList.add("grip-haptics");
 
   function isActiveGripTarget(event) {
     return stage.classList.contains("can-grip")
