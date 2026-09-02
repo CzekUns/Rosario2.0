@@ -134,14 +134,6 @@
           </div>
 
           <div class="reader-player" aria-label="Modalità e controlli della recita">
-            <label class="interaction-mode-field" for="interactionModeSelect">
-              <span>Modalità</span>
-              <select id="interactionModeSelect">
-                <option value="automatic">Audio automatico</option>
-                <option value="guided">Audio gestito da me</option>
-                <option value="silent">Senza audio</option>
-              </select>
-            </label>
             <div class="player-action-row">
               <p id="interactionHint">Avvia la voce: la corona seguirà la recita.</p>
               <button class="play-button" id="playPauseButton" type="button" aria-label="Avvia la recita automatica">
@@ -153,6 +145,11 @@
         </article>
 
         <aside class="bead-stage" aria-label="Finestra di presa del Rosario">
+          <div class="grip-mode-switch" role="group" aria-label="Modalità di preghiera">
+            <button type="button" data-interaction-mode="automatic" aria-pressed="false">Auto</button>
+            <button type="button" data-interaction-mode="guided" aria-pressed="false">Audio</button>
+            <button type="button" data-interaction-mode="silent" aria-pressed="false">No audio</button>
+          </div>
           <div class="strand-topline">
             <span>Corona</span>
             <strong id="currentStepCount">1 di 1</strong>
