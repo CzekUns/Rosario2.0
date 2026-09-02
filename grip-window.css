@@ -35,15 +35,14 @@
 .grip-window .bead-row {
   flex-basis: 4.05rem;
   min-height: 4.05rem;
-  opacity: 0;
-  visibility: hidden;
-  filter: blur(2.4px);
+  opacity: 0.34;
+  visibility: visible !important;
+  filter: blur(1.35px);
   transform: translateY(var(--thumb-anchor));
   transition:
     opacity 210ms ease,
     filter 210ms ease,
-    transform 230ms cubic-bezier(0.22, 0.78, 0.22, 1),
-    visibility 0s linear 210ms;
+    transform 230ms cubic-bezier(0.22, 0.78, 0.22, 1);
 }
 
 .grip-window .bead-row:has(+ .bead-row + .bead-row.active),
@@ -235,6 +234,10 @@
   .grip-window .bead-row {
     flex-basis: 3.9rem;
     min-height: 3.9rem;
+    min-width: 100%;
+    opacity: 0.42;
+    visibility: visible !important;
+    filter: blur(0.75px);
   }
 
   .grip-window .bead {
