@@ -99,15 +99,14 @@
                     </select>
                   </label>
 
-                  <label class="field compact-field" data-audio-setting>
-                    <span>Ritmo</span>
-                    <select id="speechRateSelect" aria-label="Velocità della voce">
-                      <option value="0.82">Molto lento</option>
-                      <option value="0.88" selected>Raccolto</option>
-                      <option value="0.94">Naturale</option>
-                      <option value="1">Normale</option>
-                    </select>
-                  </label>
+                  <div class="field compact-field audio-rate-field" data-audio-setting>
+                    <span>Velocità audio</span>
+                    <div class="audio-rate-toggle" role="group" aria-label="Velocità dell'audio">
+                      <button type="button" data-speech-rate="1.2" aria-pressed="false">×1,2</button>
+                      <button type="button" data-speech-rate="1.5" aria-pressed="false">×1,5</button>
+                      <button type="button" data-speech-rate="1.7" aria-pressed="false">×1,7</button>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="intention-box">
