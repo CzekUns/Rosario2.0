@@ -260,10 +260,38 @@
     width: 5rem;
   }
 
+  .grip-window .grip-zone {
+    right: 1.15rem;
+  }
+
   .grip-window .grip-zone small {
     right: 0;
     width: 4.9rem;
     font-size: 0.59rem;
+  }
+
+  .grip-window .rosary-strand {
+    background:
+      linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
+        calc(100% - 3.7rem) 0 / 1px 100% no-repeat,
+      linear-gradient(#4b2d1a, #2d190f)
+        calc(100% - 3.7rem) 0 / 5px 100% no-repeat;
+  }
+
+  .grip-window .bead {
+    transform: translateX(-1.15rem);
+  }
+
+  .grip-window .bead-row:has(+ .bead-row.active),
+  .grip-window .bead-row.active + .bead-row {
+    opacity: 0.84;
+    filter: blur(0.2px);
+  }
+
+  .grip-window .bead-row:has(+ .bead-row + .bead-row.active),
+  .grip-window .bead-row.active + .bead-row + .bead-row {
+    opacity: 0.56;
+    filter: blur(0.8px);
   }
 }
 
