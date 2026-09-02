@@ -29,6 +29,39 @@
       "Maria, Madre che scioglie i nodi, accogli questa intenzione nelle tue mani pazienti e guidaci verso la pace del cuore.",
   });
 
+  function freezeSpeechParts(parts) {
+    return Object.freeze(
+      parts.map((part) => Object.freeze({ speaker: part.speaker, text: part.text })),
+    );
+  }
+
+  const prayerParts = Object.freeze({
+    sign: freezeSpeechParts([
+      { speaker: "leader", text: "Nel nome del Padre, del Figlio e dello Spirito Santo." },
+      { speaker: "assembly", text: "Amen." },
+    ]),
+    creed: freezeSpeechParts([{ speaker: "assembly", text: prayers.creed }]),
+    ourFather: freezeSpeechParts([
+      { speaker: "leader", text: "Padre nostro, che sei nei cieli, sia santificato il tuo nome, venga il tuo regno, sia fatta la tua volontà, come in cielo così in terra." },
+      { speaker: "assembly", text: "Dacci oggi il nostro pane quotidiano, rimetti a noi i nostri debiti come anche noi li rimettiamo ai nostri debitori, e non abbandonarci alla tentazione, ma liberaci dal male. Amen." },
+    ]),
+    hailMary: freezeSpeechParts([
+      { speaker: "leader", text: "Ave o Maria, piena di grazia, il Signore è con te. Tu sei benedetta fra le donne e benedetto è il frutto del tuo seno, Gesù." },
+      { speaker: "assembly", text: "Santa Maria, Madre di Dio, prega per noi peccatori, adesso e nell'ora della nostra morte. Amen." },
+    ]),
+    glory: freezeSpeechParts([
+      { speaker: "leader", text: "Gloria al Padre, al Figlio e allo Spirito Santo." },
+      { speaker: "assembly", text: "Come era nel principio, ora e sempre, nei secoli dei secoli. Amen." },
+    ]),
+    fatima: freezeSpeechParts([{ speaker: "assembly", text: prayers.fatima }]),
+    hailHolyQueen: freezeSpeechParts([{ speaker: "assembly", text: prayers.hailHolyQueen }]),
+    undoer: freezeSpeechParts([{ speaker: "leader", text: prayers.undoer }]),
+  });
+
+  const prayerPartsByText = new Map(
+    Object.keys(prayerParts).map((key) => [prayers[key], prayerParts[key]]),
+  );
+
   const mysterySets = Object.freeze({
     joyful: Object.freeze({
       id: "joyful",
@@ -142,7 +175,10 @@
   }
 
   function createStep(id, type, title, text, beadIndex, context = {}) {
-    return { id, type, title, text, beadIndex, ...context };
+    const speechParts = context.speechParts
+      || prayerPartsByText.get(text)
+      || freezeSpeechParts([{ speaker: "leader", text }]);
+    return { id, type, title, text, beadIndex, speechParts, ...context };
   }
 
   function buildIntentionText(intention) {
@@ -304,6 +340,7 @@
 
   return Object.freeze({
     prayers,
+    prayerParts,
     mysterySets,
     dayToMysterySet,
     getTodaySetId,
