@@ -188,11 +188,15 @@
 
 /* La vecchia sagoma di presa sparisce: il bersaglio è il grano stesso. */
 .grip-window .grip-zone {
-  top: calc(50% + var(--thumb-anchor));
+  position: relative;
+  grid-row: 4;
+  align-self: center;
+  justify-self: end;
+  top: auto;
   right: 0.1rem;
   width: 6rem;
   height: 4rem;
-  transform: translateY(-50%);
+  transform: translateY(var(--thumb-anchor));
 }
 
 .grip-window .grip-zone::before,
