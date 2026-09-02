@@ -21,7 +21,7 @@ const elements = {
   playPauseButton: document.querySelector("#playPauseButton"),
   playButtonLabel: document.querySelector("#playButtonLabel"),
   playIcon: document.querySelector(".play-icon"),
-  interactionModeSelect: document.querySelector("#interactionModeSelect"),
+  interactionModeButtons: document.querySelectorAll("[data-interaction-mode]"),
   interactionHint: document.querySelector("#interactionHint"),
   gripInstruction: document.querySelector("#gripInstruction"),
   beadStage: document.querySelector(".bead-stage"),
@@ -281,12 +281,10 @@ function loadVoices() {
   if (!("speechSynthesis" in window)) {
     elements.voiceSelect.innerHTML = '<option value="__auto__">Audio non disponibile</option>';
     elements.voiceSelect.disabled = true;
-    elements.interactionModeSelect.querySelectorAll('option[value="automatic"], option[value="guided"]')
-      .forEach((option) => {
-        option.disabled = true;
-      });
+    elements.interactionModeButtons.forEach((button) => {
+      button.disabled = button.dataset.interactionMode !== "silent";
+    });
     state.interactionMode = "silent";
-    elements.interactionModeSelect.value = "silent";
     updateUi();
     updateSpeechStatus("Audio non disponibile · modalità silenziosa");
     return;
@@ -469,6 +467,10 @@ function toggleSpeech() {
 }
 
 function updatePlayerUi() {
+  elements.interactionModeButtons.forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.interactionMode === state.interactionMode));
+  });
+
   const isSpeaking = speechStatus === "speaking";
   const isPaused = speechStatus === "paused";
   const isCompleted = Boolean(state.completedAt) && state.currentIndex === model.steps.length - 1;
@@ -656,11 +658,15 @@ function changeRosaryConfiguration(change) {
 
 elements.playPauseButton.addEventListener("click", toggleSpeech);
 
-elements.interactionModeSelect.addEventListener("change", () => {
-  stopSpeech();
-  state.interactionMode = elements.interactionModeSelect.value;
-  guidedStepHeardId = null;
-  updateUi();
+elements.interactionModeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextMode = button.dataset.interactionMode;
+    if (!INTERACTION_MODES.includes(nextMode) || nextMode === state.interactionMode) return;
+    stopSpeech();
+    state.interactionMode = nextMode;
+    guidedStepHeardId = null;
+    updateUi();
+  });
 });
 
 elements.resetButton.addEventListener("click", () => {
@@ -743,7 +749,9 @@ window.addEventListener("pagehide", () => {
 
 elements.fullRosaryToggle.checked = state.full;
 elements.mysterySetSelect.value = state.setChoice;
-elements.interactionModeSelect.value = state.interactionMode;
+elements.interactionModeButtons.forEach((button) => {
+  button.setAttribute("aria-pressed", String(button.dataset.interactionMode === state.interactionMode));
+});
 elements.speechRateSelect.value = ["0.82", "0.88", "0.94", "1"].includes(state.rate) ? state.rate : "0.88";
 state.rate = elements.speechRateSelect.value;
 elements.speakIntentionToggle.disabled = true;
