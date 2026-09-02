@@ -246,7 +246,10 @@ function syncRailToBead(beadIndex) {
   const row = elements.ring.querySelector(`[data-bead-index="${beadIndex}"]`);
   if (!row) return;
 
-  const nextTop = row.offsetTop - (elements.ring.clientHeight - row.clientHeight) / 2;
+  const thumbPosition = window.matchMedia("(max-width: 760px) and (max-height: 700px)").matches
+    ? 0.56
+    : 0.58;
+  const nextTop = row.offsetTop + row.clientHeight / 2 - elements.ring.clientHeight * thumbPosition;
   if (Math.abs(elements.ring.scrollTop - nextTop) < 2) return;
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
