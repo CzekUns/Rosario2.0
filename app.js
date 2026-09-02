@@ -32,7 +32,7 @@ const elements = {
   shortMysteryField: document.querySelector("#shortMysteryField"),
   shortMysterySelect: document.querySelector("#shortMysterySelect"),
   voiceSelect: document.querySelector("#voiceSelect"),
-  speechRateSelect: document.querySelector("#speechRateSelect"),
+  speechRateButtons: document.querySelectorAll("[data-speech-rate]"),
   speechSupport: document.querySelector("#speechSupport"),
   intentionInput: document.querySelector("#intentionInput"),
   speakIntentionToggle: document.querySelector("#speakIntentionToggle"),
@@ -59,7 +59,7 @@ const state = {
   shortMysteryIndex: Number(savedState?.shortMysteryIndex) || 0,
   currentIndex: 0,
   voiceName: savedState?.voiceName || AUTO_VOICE,
-  rate: String(savedState?.rate || "0.88"),
+  rate: ["1.2", "1.5", "1.7"].includes(String(savedState?.rate)) ? String(savedState.rate) : "1.2",
   interactionMode: queryInteractionMode || savedInteractionMode,
   completedAt: shouldRestart ? null : savedState?.completedAt || null,
 };
@@ -467,7 +467,7 @@ function speakCurrent({ continueAutomatically = true } = {}) {
     const selectedVoice = isAssembly ? getResponseVoice() : guideVoice;
 
     utterance.lang = "it-IT";
-    utterance.rate = Math.max(0.72, (Number(state.rate) || 0.88) - (isAssembly ? 0.025 : 0));
+    utterance.rate = Number(state.rate) || 1.2;
     utterance.pitch = isAssembly && selectedVoice === guideVoice ? 0.9 : 1;
     utterance.volume = 1;
     if (selectedVoice) utterance.voice = selectedVoice;
@@ -758,10 +758,17 @@ elements.voiceSelect.addEventListener("change", () => {
   saveState();
 });
 
-elements.speechRateSelect.addEventListener("change", () => {
-  stopSpeech();
-  state.rate = elements.speechRateSelect.value;
-  saveState();
+elements.speechRateButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const nextRate = button.dataset.speechRate;
+    if (!["1.2", "1.5", "1.7"].includes(nextRate) || nextRate === state.rate) return;
+    stopSpeech();
+    state.rate = nextRate;
+    elements.speechRateButtons.forEach((rateButton) => {
+      rateButton.setAttribute("aria-pressed", String(rateButton.dataset.speechRate === state.rate));
+    });
+    saveState();
+  });
 });
 
 elements.intentionInput.addEventListener("input", () => {
@@ -805,8 +812,9 @@ elements.mysterySetSelect.value = state.setChoice;
 elements.interactionModeButtons.forEach((button) => {
   button.setAttribute("aria-pressed", String(button.dataset.interactionMode === state.interactionMode));
 });
-elements.speechRateSelect.value = ["0.82", "0.88", "0.94", "1"].includes(state.rate) ? state.rate : "0.88";
-state.rate = elements.speechRateSelect.value;
+elements.speechRateButtons.forEach((button) => {
+  button.setAttribute("aria-pressed", String(button.dataset.speechRate === state.rate));
+});
 elements.speakIntentionToggle.disabled = true;
 
 const restoreProgress = canRestoreProgress();
