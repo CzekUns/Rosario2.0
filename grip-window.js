@@ -10,7 +10,7 @@
 
   // Mantiene il layout base stabile: la vecchia classe grip-window applicava
   // maschere e traslazioni dopo il primo frame, facendo sparire i grani.
-  stage.classList.add("grip-haptics");
+  stage.classList.add("grip-window", "grip-haptics");
 
   function isActiveGripTarget(event) {
     return stage.classList.contains("can-grip")
