@@ -221,7 +221,7 @@
 
 @media (max-width: 760px) {
   .grip-window {
-    --thumb-anchor: clamp(2.7rem, 10vh, 4.7rem);
+    --thumb-anchor: clamp(0.75rem, 2.5vh, 1.35rem);
   }
 
   .grip-window .rosary-strand {
@@ -264,6 +264,12 @@
     right: 0;
     width: 4.9rem;
     font-size: 0.59rem;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .grip-window {
+    --thumb-anchor: 0.65rem;
   }
 }
 
