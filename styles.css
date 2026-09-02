@@ -1525,6 +1525,29 @@ input:focus-visible {
   }
 }
 
+
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .grip-mode-switch {
+    gap: 0.14rem;
+    padding: 0.24rem;
+  }
+
+  .grip-mode-switch button {
+    min-height: 2rem;
+    padding-block: 0.35rem;
+  }
+
+  .strand-topline {
+    padding-block: 0.48rem;
+  }
+
+  .strand-caption {
+    min-height: 3.5rem;
+    padding-block: 0.52rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html,
   .rosary-strand {
