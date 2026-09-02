@@ -943,7 +943,7 @@ input:focus-visible {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -956,6 +956,12 @@ input:focus-visible {
     linear-gradient(165deg, var(--night-soft), var(--night) 72%);
   box-shadow: 0 26px 70px rgba(16, 26, 42, 0.3);
 }
+
+.grip-mode-switch { grid-row: 1; }
+.grip-rate-control { grid-row: 2; }
+.strand-topline { grid-row: 3; }
+.rosary-strand { grid-row: 4; }
+.strand-caption { grid-row: 5; }
 
 .grip-zone {
   position: absolute;
