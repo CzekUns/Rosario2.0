@@ -1,201 +1,179 @@
-/* Finestra di presa: il Rosario non è una lista da scorrere, ma un filo da tirare un grano alla volta. */
+/* Finestra di presa stabile: estetica e movimento non alterano la visibilità dei grani. */
 
 .grip-window {
-  --thumb-anchor: clamp(2.8rem, 7vh, 5rem);
+  --thumb-position: 58%;
+  --row-size: 4.05rem;
+  --half-row: 2.025rem;
+  --bead-column: 6.4rem;
 }
 
 .grip-window .rosary-strand {
   overflow: hidden;
+  -webkit-mask-image: none;
+  mask-image: none;
   background:
-    linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
-      calc(100% - 3.3rem) 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(235, 206, 146, 0.52), rgba(235, 206, 146, 0.52))
+      calc(100% - 3.2rem) 0 / 1px 100% no-repeat,
     linear-gradient(#4b2d1a, #2d190f)
-      calc(100% - 3.3rem) 0 / 6px 100% no-repeat;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.32) 8%,
-    #000 18%,
-    #000 82%,
-    rgba(0, 0, 0, 0.34) 92%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.32) 8%,
-    #000 18%,
-    #000 82%,
-    rgba(0, 0, 0, 0.34) 92%,
-    transparent 100%
-  );
+      calc(100% - 3.2rem) 0 / 5px 100% no-repeat;
 }
 
-/* Tutti i grani continuano a esistere nella sequenza, ma la finestra ne lascia percepire solo cinque. */
+.grip-window .strand-spacer:first-child {
+  flex-basis: calc(var(--thumb-position) - var(--half-row));
+}
+
+.grip-window .strand-spacer:last-child {
+  flex-basis: calc(100% - var(--thumb-position) - var(--half-row));
+}
+
 .grip-window .bead-row {
-  flex-basis: 4.05rem;
-  min-height: 4.05rem;
-  opacity: 0.34;
-  visibility: visible !important;
-  filter: blur(1.35px);
-  transform: translateY(var(--thumb-anchor));
-  transition:
-    opacity 210ms ease,
-    filter 210ms ease,
-    transform 230ms cubic-bezier(0.22, 0.78, 0.22, 1);
-}
-
-.grip-window .bead-row:has(+ .bead-row + .bead-row.active),
-.grip-window .bead-row:has(+ .bead-row.active),
-.grip-window .bead-row.active,
-.grip-window .bead-row.active + .bead-row,
-.grip-window .bead-row.active + .bead-row + .bead-row {
+  grid-template-columns: minmax(0, 1fr) var(--bead-column);
+  flex-basis: var(--row-size);
+  min-width: 100%;
+  min-height: var(--row-size);
+  padding: 0.1rem 0 0.1rem 0.45rem;
   visibility: visible;
-  transition-delay: 0s;
+  opacity: 0.38;
+  filter: blur(0.8px);
+  transform: none;
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease,
+    background 180ms ease,
+    transform 180ms cubic-bezier(0.22, 0.78, 0.22, 1);
 }
 
-.grip-window .bead-row:has(+ .bead-row + .bead-row.active),
-.grip-window .bead-row.active + .bead-row + .bead-row {
-  opacity: 0.24;
-  filter: blur(2.2px);
+.grip-window .bead-row.done {
+  opacity: 0.68;
+  filter: blur(0.2px);
 }
 
 .grip-window .bead-row:has(+ .bead-row.active),
 .grip-window .bead-row.active + .bead-row {
-  opacity: 0.58;
-  filter: blur(0.65px);
+  opacity: 0.78;
+  filter: blur(0.15px);
+}
+
+.grip-window .bead-row:has(+ .bead-row + .bead-row.active),
+.grip-window .bead-row.active + .bead-row + .bead-row {
+  opacity: 0.54;
+  filter: blur(0.5px);
 }
 
 .grip-window .bead-row.active {
+  z-index: 4;
   opacity: 1;
   filter: none;
-  background: radial-gradient(circle at 78% 50%, rgba(255, 229, 158, 0.13), transparent 42%);
+  background: radial-gradient(circle at 78% 50%, rgba(255, 229, 158, 0.13), transparent 44%);
 }
 
 .grip-window .rosary-strand.is-gripping .bead-row {
-  transform: translateY(calc(var(--thumb-anchor) + var(--grip-drag)));
+  transform: translateY(var(--grip-drag));
   transition: none;
 }
 
-/* Il codice appartiene al solo grano trattenuto: gli altri sono materia, non controlli UI. */
 .grip-window .bead-code {
   opacity: 0;
   visibility: hidden;
-  transform: translateX(0.5rem);
-  transition: opacity 160ms ease, transform 180ms ease;
+  transform: translateX(0.35rem);
+  transition: opacity 150ms ease, transform 170ms ease;
 }
 
 .grip-window .bead-row.active .bead-code {
   opacity: 1;
   visibility: visible;
-  transform: translateX(0);
+  transform: none;
   color: #ffe6a3;
-  font-size: 0.82rem;
-  text-shadow: 0 1px 10px rgba(255, 208, 103, 0.18);
+  font-size: 0.76rem;
+  text-shadow: 0 1px 10px rgba(255, 208, 103, 0.2);
 }
 
-/* Grani grandi, tridimensionali, simili a legno d'ulivo. */
 .grip-window .bead {
-  width: 5rem;
-  height: 4rem;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--bead-column);
+  height: var(--row-size);
+  margin: 0;
+  transform: none;
 }
 
 .grip-window .bead::before {
   width: 2.15rem;
   height: 2.15rem;
-  border: 1px solid rgba(255, 236, 189, 0.54);
+  border: 1px solid rgba(255, 236, 189, 0.56);
   background:
     radial-gradient(circle at 29% 23%, rgba(255, 251, 220, 0.96) 0 5%, transparent 6%),
-    repeating-linear-gradient(17deg, rgba(74, 41, 19, 0.1) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(17deg, rgba(74, 41, 19, 0.12) 0 1px, transparent 1px 5px),
     radial-gradient(circle at 34% 28%, #d9ad63 0 12%, #b67a37 43%, #805027 70%, #4a2b19 100%);
   box-shadow:
     inset -0.38rem -0.42rem 0.62rem rgba(48, 25, 11, 0.46),
     inset 0.28rem 0.24rem 0.4rem rgba(255, 238, 184, 0.3),
-    0 0.65rem 1.15rem rgba(0, 0, 0, 0.42);
+    0 0.58rem 1rem rgba(0, 0, 0, 0.4);
 }
 
 .grip-window .bead::after {
-  position: absolute;
-  z-index: 2;
   width: 0.34rem;
   height: 0.34rem;
-  content: "";
   border: 1px solid rgba(246, 210, 145, 0.2);
-  border-radius: 50%;
   background: radial-gradient(circle, #1e100a 0 45%, #6b4225 50% 72%, #2a160d 74%);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
-  transition: transform 180ms ease;
 }
 
 .grip-window .bead.major::before {
-  width: 2.72rem;
-  height: 2.72rem;
+  width: 2.9rem;
+  height: 2.9rem;
   background:
     radial-gradient(circle at 29% 23%, rgba(255, 252, 225, 0.98) 0 5%, transparent 6%),
-    repeating-linear-gradient(17deg, rgba(78, 43, 18, 0.1) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(17deg, rgba(78, 43, 18, 0.12) 0 1px, transparent 1px 5px),
     radial-gradient(circle at 34% 28%, #e1bb70 0 12%, #bc7e38 43%, #87552a 70%, #4b2b19 100%);
 }
 
-.grip-window .bead-row:has(+ .bead-row + .bead-row.active) .bead::before,
-.grip-window .bead-row.active + .bead-row + .bead-row .bead::before {
-  transform: scale(0.78);
-}
-
-.grip-window .bead-row:has(+ .bead-row.active) .bead::before,
-.grip-window .bead-row.active + .bead-row .bead::before {
-  transform: scale(0.92);
-}
-
 .grip-window .bead-row.active .bead::before {
-  transform: scale(1.38);
+  transform: scale(1.25);
   box-shadow:
     inset -0.4rem -0.44rem 0.64rem rgba(48, 25, 11, 0.42),
     inset 0.28rem 0.24rem 0.42rem rgba(255, 241, 194, 0.34),
-    0 0 0 0.42rem rgba(255, 233, 174, 0.065),
-    0 0 24px rgba(223, 178, 88, 0.38),
-    0 0.75rem 1.25rem rgba(0, 0, 0, 0.43);
+    0 0 0 0.34rem rgba(255, 233, 174, 0.075),
+    0 0 24px rgba(223, 178, 88, 0.42),
+    0 0.7rem 1.15rem rgba(0, 0, 0, 0.42);
 }
 
-.grip-window .bead-row.active .bead::after {
-  transform: scale(1.38);
+.grip-window .bead-row.active .bead.major::before {
+  transform: scale(1.12);
 }
 
 .grip-window.can-grip .bead-row.active .bead::before {
   animation: grip-ready-pulse 1.9s ease-in-out infinite;
-  box-shadow:
-    inset -0.4rem -0.44rem 0.64rem rgba(48, 25, 11, 0.42),
-    inset 0.28rem 0.24rem 0.42rem rgba(255, 241, 194, 0.36),
-    0 0 0 0.48rem rgba(255, 232, 164, 0.1),
-    0 0 30px rgba(255, 211, 113, 0.54),
-    0 0.75rem 1.25rem rgba(0, 0, 0, 0.43);
 }
 
 .grip-window.is-gripping .bead-row.active .bead::before {
   animation: none;
-  transform: scale(1.29);
+  transform: scale(1.16);
 }
 
 .grip-window.grip-ready .bead-row.active .bead::before {
-  transform: scale(1.46);
+  animation: none;
+  transform: scale(1.3);
   box-shadow:
     inset -0.38rem -0.42rem 0.62rem rgba(48, 25, 11, 0.4),
     inset 0.28rem 0.24rem 0.42rem rgba(255, 245, 205, 0.38),
-    0 0 0 0.62rem rgba(255, 231, 160, 0.13),
-    0 0 38px rgba(255, 214, 117, 0.7),
-    0 0.75rem 1.25rem rgba(0, 0, 0, 0.4);
+    0 0 0 0.52rem rgba(255, 231, 160, 0.13),
+    0 0 34px rgba(255, 214, 117, 0.68);
 }
 
-/* La vecchia sagoma di presa sparisce: il bersaglio è il grano stesso. */
 .grip-window .grip-zone {
   position: relative;
   grid-row: 3;
   align-self: center;
   justify-self: end;
+  z-index: 5;
   top: auto;
-  right: 0.1rem;
-  width: 6rem;
-  height: 4rem;
-  transform: translateY(var(--thumb-anchor));
+  right: 0;
+  width: var(--bead-column);
+  height: var(--row-size);
+  pointer-events: none;
+  transform: translateY(clamp(0.8rem, 3vh, 1.6rem));
 }
 
 .grip-window .grip-zone::before,
@@ -205,10 +183,10 @@
 
 .grip-window .grip-zone small {
   right: 0.15rem;
-  bottom: -2.15rem;
-  width: 5.7rem;
-  color: rgba(255, 247, 224, 0.7);
-  font-size: 0.64rem;
+  bottom: -1.55rem;
+  width: calc(var(--bead-column) - 0.3rem);
+  color: rgba(255, 247, 224, 0.72);
+  font-size: 0.61rem;
   letter-spacing: 0.025em;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.42);
 }
@@ -220,29 +198,23 @@
 
 @media (max-width: 760px) {
   .grip-window {
-    --thumb-anchor: clamp(0.75rem, 2.5vh, 1.35rem);
+    --row-size: 3.9rem;
+    --half-row: 1.95rem;
+    --bead-column: 6.1rem;
   }
 
   .grip-window .rosary-strand {
     background:
-      linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
-        calc(100% - 2.55rem) 0 / 1px 100% no-repeat,
+      linear-gradient(rgba(235, 206, 146, 0.52), rgba(235, 206, 146, 0.52))
+        calc(100% - 3.05rem) 0 / 1px 100% no-repeat,
       linear-gradient(#4b2d1a, #2d190f)
-        calc(100% - 2.55rem) 0 / 5px 100% no-repeat;
+        calc(100% - 3.05rem) 0 / 5px 100% no-repeat;
   }
 
   .grip-window .bead-row {
-    flex-basis: 3.9rem;
-    min-height: 3.9rem;
-    min-width: 100%;
-    opacity: 0.42;
-    visibility: visible !important;
-    filter: blur(0.75px);
-  }
-
-  .grip-window .bead {
-    width: 4.65rem;
-    height: 3.9rem;
+    padding-left: 0.25rem;
+    opacity: 0.44;
+    filter: blur(0.55px);
   }
 
   .grip-window .bead::before {
@@ -251,60 +223,22 @@
   }
 
   .grip-window .bead.major::before {
-    width: 2.52rem;
-    height: 2.52rem;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 
   .grip-window .bead-row.active .bead-code {
-    font-size: 0.75rem;
-  }
-
-  .grip-window .grip-zone {
-    width: 5rem;
-  }
-
-  .grip-window .grip-zone {
-    right: 1.15rem;
+    font-size: 0.7rem;
   }
 
   .grip-window .grip-zone small {
-    right: 0;
-    width: 4.9rem;
-    font-size: 0.59rem;
-  }
-
-  .grip-window .rosary-strand {
-    background:
-      linear-gradient(rgba(235, 206, 146, 0.5), rgba(235, 206, 146, 0.5))
-        calc(100% - 3.7rem) 0 / 1px 100% no-repeat,
-      linear-gradient(#4b2d1a, #2d190f)
-        calc(100% - 3.7rem) 0 / 5px 100% no-repeat;
-  }
-
-  .grip-window .bead {
-    position: absolute;
-    top: 50%;
-    right: 1.375rem;
-    margin: 0;
-    transform: translateY(-50%);
-  }
-
-  .grip-window .bead-row:has(+ .bead-row.active),
-  .grip-window .bead-row.active + .bead-row {
-    opacity: 0.84;
-    filter: blur(0.2px);
-  }
-
-  .grip-window .bead-row:has(+ .bead-row + .bead-row.active),
-  .grip-window .bead-row.active + .bead-row + .bead-row {
-    opacity: 0.56;
-    filter: blur(0.8px);
+    font-size: 0.57rem;
   }
 }
 
 @media (max-width: 760px) and (max-height: 700px) {
   .grip-window {
-    --thumb-anchor: 0.65rem;
+    --thumb-position: 56%;
   }
 }
 
