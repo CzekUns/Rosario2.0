@@ -67,6 +67,7 @@ const state = {
 let model;
 let voices = [];
 let bestVoice = null;
+let responseVoice = null;
 let speechStatus = "idle";
 let activeSpeechRun = 0;
 let activeUtterance = null;
@@ -205,7 +206,7 @@ function updateUi({ syncRail = false, announce = false } = {}) {
     : Math.round((state.currentIndex / (model.steps.length - 1)) * 100);
 
   elements.prayerTitle.textContent = step.title;
-  elements.prayerText.textContent = step.text;
+  renderPrayerText(step);
   elements.currentStepType.textContent = step.type;
   elements.currentStepTitle.textContent = step.title;
   elements.currentStepCount.textContent = `${step.beadIndex + 1} di ${model.beads.length}`;
@@ -295,6 +296,7 @@ function loadVoices() {
     .filter((voice) => String(voice.lang || "").toLowerCase().startsWith("it"))
     .sort((first, second) => scoreVoice(second) - scoreVoice(first) || first.name.localeCompare(second.name));
   bestVoice = voices[0] || null;
+  responseVoice = voices.find((voice) => voice.name !== bestVoice?.name) || bestVoice;
 
   elements.voiceSelect.innerHTML = "";
   const automatic = document.createElement("option");
@@ -320,6 +322,13 @@ function getSelectedVoice() {
   return voices.find((voice) => voice.name === state.voiceName) || bestVoice;
 }
 
+function getResponseVoice() {
+  const guideVoice = getSelectedVoice();
+  return voices.find((voice) => voice.name !== guideVoice?.name)
+    || responseVoice
+    || guideVoice;
+}
+
 function updateSpeechStatus(message = null) {
   if (message) {
     elements.speechSupport.textContent = message;
@@ -336,12 +345,13 @@ function updateSpeechStatus(message = null) {
   }
   const selectedVoice = getSelectedVoice();
   const modePrefix = state.interactionMode === "automatic" ? "Automatico" : "Gestito da te";
+  const replyVoice = getResponseVoice();
   elements.speechSupport.textContent = selectedVoice
-    ? `${modePrefix} · ${selectedVoice.name}`
-    : `${modePrefix} · voce italiana`;
+    ? `${modePrefix} · guida e risposta`
+    : `${modePrefix} · voci italiane`;
   elements.speechSupport.title = selectedVoice
-    ? `Voce in uso: ${selectedVoice.name}`
-    : "Il dispositivo sceglierà una voce italiana";
+    ? `Guida: ${selectedVoice.name}. Risposta: ${replyVoice?.name || selectedVoice.name}`
+    : "Il dispositivo sceglierà le voci italiane disponibili";
 }
 
 function expandCodeForSpeech(step) {
@@ -352,12 +362,34 @@ function expandCodeForSpeech(step) {
   return `Mistero ${step.mysteryNumber}`;
 }
 
-function prepareSpeechText(step) {
+function prepareSpeechText(text) {
   const ordinals = { "1º": "primo", "2º": "secondo", "3º": "terzo", "4º": "quarto", "5º": "quinto" };
   return Object.entries(ordinals).reduce(
-    (text, [number, word]) => text.replaceAll(number, word),
-    step.text.replace(/\s+/g, " ").trim(),
+    (prepared, [number, word]) => prepared.replaceAll(number, word),
+    String(text || "").replace(/\s+/g, " ").trim(),
   );
+}
+
+function getSpeechParts(step) {
+  return Array.isArray(step.speechParts) && step.speechParts.length
+    ? step.speechParts
+    : [{ speaker: "leader", text: step.text }];
+}
+
+function renderPrayerText(step) {
+  const parts = getSpeechParts(step);
+  elements.prayerText.replaceChildren();
+
+  parts.forEach((part) => {
+    const segment = document.createElement("span");
+    segment.className = `prayer-part prayer-part--${part.speaker}`;
+    const label = document.createElement("small");
+    label.textContent = part.speaker === "assembly" ? "Tutti" : "Guida";
+    const text = document.createElement("span");
+    text.textContent = part.text;
+    segment.append(label, text);
+    elements.prayerText.appendChild(segment);
+  });
 }
 
 function stopSpeech() {
@@ -393,32 +425,17 @@ function speakCurrent({ continueAutomatically = true } = {}) {
   stopSpeech();
   const runId = activeSpeechRun;
   const step = model.steps[state.currentIndex];
-  const utterance = new SpeechSynthesisUtterance(prepareSpeechText(step));
-  const selectedVoice = getSelectedVoice();
+  const parts = getSpeechParts(step);
 
-  utterance.lang = "it-IT";
-  utterance.rate = Number(state.rate) || 0.88;
-  utterance.pitch = 1;
-  utterance.volume = 1;
-  if (selectedVoice) utterance.voice = selectedVoice;
-
-  activeUtterance = utterance;
-  utterance.onstart = () => {
-    if (runId !== activeSpeechRun) return;
-    speechStatus = "speaking";
-    updatePlayerUi();
-  };
-
-  utterance.onend = () => {
-    if (runId !== activeSpeechRun) return;
+  function finishStep() {
     activeUtterance = null;
     speechStatus = "idle";
+    elements.prayerText.removeAttribute("data-speaker");
 
     if (state.currentIndex >= model.steps.length - 1) {
       completeRosary();
       return;
     }
-
     if (!continueAutomatically) {
       guidedStepHeardId = step.id;
       updatePlayerUi();
@@ -434,17 +451,53 @@ function speakCurrent({ continueAutomatically = true } = {}) {
       elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
       speakCurrent({ continueAutomatically: true });
     }, pauseDuration);
-  };
+  }
 
-  utterance.onerror = (event) => {
-    if (runId !== activeSpeechRun || ["canceled", "interrupted"].includes(event.error)) return;
-    activeUtterance = null;
-    speechStatus = "idle";
-    updatePlayerUi();
-    updateSpeechStatus("Tocca Ascolta per riprovare");
-  };
+  function speakPart(partIndex) {
+    if (runId !== activeSpeechRun) return;
+    const part = parts[partIndex];
+    if (!part) {
+      finishStep();
+      return;
+    }
 
-  window.speechSynthesis.speak(utterance);
+    const utterance = new SpeechSynthesisUtterance(prepareSpeechText(part.text));
+    const isAssembly = part.speaker === "assembly";
+    const guideVoice = getSelectedVoice();
+    const selectedVoice = isAssembly ? getResponseVoice() : guideVoice;
+
+    utterance.lang = "it-IT";
+    utterance.rate = Math.max(0.72, (Number(state.rate) || 0.88) - (isAssembly ? 0.025 : 0));
+    utterance.pitch = isAssembly && selectedVoice === guideVoice ? 0.9 : 1;
+    utterance.volume = 1;
+    if (selectedVoice) utterance.voice = selectedVoice;
+
+    activeUtterance = utterance;
+    utterance.onstart = () => {
+      if (runId !== activeSpeechRun) return;
+      speechStatus = "speaking";
+      updatePlayerUi();
+      elements.prayerText.dataset.speaker = part.speaker;
+    };
+    utterance.onend = () => {
+      if (runId !== activeSpeechRun) return;
+      activeUtterance = null;
+      elements.prayerText.removeAttribute("data-speaker");
+      continuationTimer = window.setTimeout(() => speakPart(partIndex + 1), isAssembly ? 110 : 230);
+    };
+    utterance.onerror = (event) => {
+      if (runId !== activeSpeechRun || ["canceled", "interrupted"].includes(event.error)) return;
+      activeUtterance = null;
+      elements.prayerText.removeAttribute("data-speaker");
+      speechStatus = "idle";
+      updatePlayerUi();
+      updateSpeechStatus("Tocca Ascolta per riprovare");
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  speakPart(0);
 }
 
 function toggleSpeech() {
