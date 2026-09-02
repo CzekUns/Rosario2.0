@@ -555,6 +555,48 @@ input:focus-visible {
   line-height: 1.78;
 }
 
+#prayerText {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.prayer-part {
+  display: grid;
+  gap: 0.28rem;
+  padding-left: 0.85rem;
+  border-left: 2px solid transparent;
+  transition: opacity 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.prayer-part small {
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.prayer-part--assembly {
+  border-left-color: rgba(145, 75, 77, 0.38);
+}
+
+.prayer-part--assembly small {
+  color: var(--rose);
+}
+
+#prayerText[data-speaker="leader"] .prayer-part:not(.prayer-part--leader),
+#prayerText[data-speaker="assembly"] .prayer-part:not(.prayer-part--assembly) {
+  opacity: 0.46;
+}
+
+#prayerText[data-speaker="leader"] .prayer-part--leader,
+#prayerText[data-speaker="assembly"] .prayer-part--assembly {
+  transform: translateX(0.18rem);
+}
+
+
 .progress-wrap {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
