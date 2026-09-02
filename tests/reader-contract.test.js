@@ -8,9 +8,10 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "rosario.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+const gripWindow = fs.readFileSync(path.join(root, "grip-window.js"), "utf8");
 
 for (const mode of ["automatic", "guided", "silent"]) {
-  assert.match(html, new RegExp(`<option value="${mode}">`));
+  assert.match(html, new RegExp(`data-interaction-mode="${mode}"`));
 }
 
 assert.match(app, /function advanceFromGrip\(\)/);
@@ -19,6 +20,8 @@ assert.doesNotMatch(app, /function jumpToBead/);
 assert.doesNotMatch(app, /selectCenteredBead/);
 assert.match(styles, /\.bead-stage\.is-gripping/);
 assert.match(styles, /touch-action: none/);
+assert.match(gripWindow, /classList\.add\("grip-haptics"\)/);
+assert.doesNotMatch(gripWindow, /classList\.add\("grip-window"\)/);
 
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 assert.equal(new Set(ids).size, ids.length, "Gli id del lettore devono essere univoci");
