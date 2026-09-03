@@ -8,9 +8,8 @@
   const HAPTIC_THRESHOLD = 34;
   let hapticGesture = null;
 
-  // Mantiene il layout base stabile: la vecchia classe grip-window applicava
-  // maschere e traslazioni dopo il primo frame, facendo sparire i grani.
-  stage.classList.add("grip-window", "grip-haptics");
+  // La geometria della presa e' gia' attiva nell'HTML prima del primo frame.
+  // Questo modulo gestisce soltanto il feedback aptico della soglia.
 
   function isActiveGripTarget(event) {
     return stage.classList.contains("can-grip")

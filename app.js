@@ -75,6 +75,8 @@ let continuationTimer = null;
 let gripGesture = null;
 let settleTimer = null;
 let guidedStepHeardId = null;
+let railSyncFrame = null;
+let railHasAligned = false;
 
 const GRIP_THRESHOLD = 34;
 
@@ -159,7 +161,11 @@ function rebuildRosary({ keepStepId = null, restoreSaved = false, resetProgress 
 }
 
 function renderBeads() {
+  if (railSyncFrame !== null) window.cancelAnimationFrame(railSyncFrame);
+  railSyncFrame = null;
+  railHasAligned = false;
   elements.ring.innerHTML = "";
+  elements.ring.scrollTo({ top: 0, behavior: "auto" });
 
   const startSpacer = document.createElement("span");
   startSpacer.className = "strand-spacer";
@@ -199,7 +205,7 @@ function getLastStepIndexForBead(beadIndex) {
   return -1;
 }
 
-function updateUi({ syncRail = false, announce = false } = {}) {
+function updateUi({ syncRail = false, announce = false, animateRail = true } = {}) {
   const step = model.steps[state.currentIndex];
   const progress = model.steps.length <= 1
     ? 0
@@ -239,29 +245,59 @@ function updateUi({ syncRail = false, announce = false } = {}) {
   updateSpeechStatus();
   saveState();
 
-  if (syncRail) syncRailToBead(step.beadIndex);
+  if (syncRail) syncRailToBead(step.beadIndex, { animate: animateRail });
 }
 
-function syncRailToBead(beadIndex) {
-  const row = elements.ring.querySelector(`[data-bead-index="${beadIndex}"]`);
-  if (!row) return;
+function syncRailToBead(beadIndex, { animate = true } = {}) {
+  if (railSyncFrame !== null) window.cancelAnimationFrame(railSyncFrame);
 
-  const thumbPosition = window.matchMedia("(max-width: 760px) and (max-height: 700px)").matches
-    ? 0.56
-    : 0.58;
-  const nextTop = row.offsetTop + row.clientHeight / 2 - elements.ring.clientHeight * thumbPosition;
-  if (Math.abs(elements.ring.scrollTop - nextTop) < 2) return;
+  const alignRail = () => {
+    railSyncFrame = null;
+    const row = elements.ring.querySelector(`[data-bead-index="${beadIndex}"]`);
+    if (!row || elements.ring.clientHeight <= 0) return;
 
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  elements.ring.scrollTo({ top: nextTop, behavior: reduceMotion ? "auto" : "smooth" });
+    const cssThumbPosition = window
+      .getComputedStyle(elements.beadStage)
+      .getPropertyValue("--thumb-position")
+      .trim();
+    const parsedThumbPosition = Number.parseFloat(cssThumbPosition);
+    const thumbRatio = cssThumbPosition.endsWith("%") && Number.isFinite(parsedThumbPosition)
+      ? Math.min(0.75, Math.max(0.35, parsedThumbPosition / 100))
+      : 0.58;
+    const rowCenter = row.offsetTop + row.clientHeight / 2;
+    const unclampedTop = rowCenter - elements.ring.clientHeight * thumbRatio;
+    const maximumTop = Math.max(0, elements.ring.scrollHeight - elements.ring.clientHeight);
+    const nextTop = Math.min(maximumTop, Math.max(0, unclampedTop));
+
+    if (Math.abs(elements.ring.scrollTop - nextTop) < 1) {
+      railHasAligned = true;
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    elements.ring.scrollTo({
+      top: nextTop,
+      behavior: animate && railHasAligned && !reduceMotion ? "smooth" : "auto",
+    });
+    railHasAligned = true;
+  };
+
+  if (animate) {
+    railSyncFrame = window.requestAnimationFrame(alignRail);
+  } else {
+    alignRail();
+  }
 }
 
-function goToStep(index, { announce = false, scrollText = true, stopAudio = true } = {}) {
+function goToStep(
+  index,
+  { announce = false, scrollText = true, stopAudio = true, animateRail = true } = {},
+) {
   if (stopAudio) stopSpeech();
   state.currentIndex = Math.max(0, Math.min(index, model.steps.length - 1));
   if (guidedStepHeardId !== model.steps[state.currentIndex].id) guidedStepHeardId = null;
   if (state.currentIndex < model.steps.length - 1) state.completedAt = null;
-  updateUi({ syncRail: true, announce });
+  updateUi({ syncRail: true, announce, animateRail });
   if (scrollText) elements.prayerScroll.scrollTo({ top: 0, behavior: "auto" });
 }
 
@@ -623,7 +659,7 @@ function completeRosary() {
   if ("vibrate" in navigator) navigator.vibrate([12, 45, 18]);
 }
 
-function advanceFromGrip() {
+function advanceFromGrip({ animateRail = true } = {}) {
   const currentStep = model.steps[state.currentIndex];
   const canAdvance =
     state.interactionMode === "silent"
@@ -637,6 +673,7 @@ function advanceFromGrip() {
   goToStep(state.currentIndex + 1, {
     announce: true,
     stopAudio: false,
+    animateRail,
   });
 
   window.clearTimeout(settleTimer);
@@ -697,11 +734,18 @@ function endGrip(event) {
   } catch {
     // La cattura può essere già terminata dal browser dopo un pointercancel.
   }
+  if (shouldAdvance) {
+    elements.ring.classList.add("is-snapping");
+    advanceFromGrip({ animateRail: false });
+  }
+
+  elements.ring.style.setProperty("--grip-drag", "0px");
   elements.ring.classList.remove("is-gripping");
   elements.beadStage.classList.remove("is-gripping", "grip-ready");
-  elements.ring.style.setProperty("--grip-drag", "0px");
 
-  if (shouldAdvance) advanceFromGrip();
+  if (shouldAdvance) {
+    window.requestAnimationFrame(() => elements.ring.classList.remove("is-snapping"));
+  }
 }
 
 function changeRosaryConfiguration(change) {
@@ -804,7 +848,12 @@ elements.ring.addEventListener("keydown", (event) => {
   advanceFromGrip();
 });
 
-window.addEventListener("resize", () => syncRailToBead(model.steps[state.currentIndex].beadIndex));
+function realignCurrentBead() {
+  syncRailToBead(model.steps[state.currentIndex].beadIndex);
+}
+
+window.addEventListener("resize", realignCurrentBead);
+window.visualViewport?.addEventListener("resize", realignCurrentBead);
 window.addEventListener("pagehide", () => {
   saveState();
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
