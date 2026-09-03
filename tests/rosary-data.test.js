@@ -23,23 +23,29 @@ expectedByDay.forEach((expected, day) => {
 });
 
 const full = rosary.buildRosary({ setChoice: "joyful", full: true });
-assert.equal(full.beads.length, 60);
-assert.equal(full.steps.length, 64);
+assert.equal(full.beads.length, 56);
+assert.equal(full.steps.length, 58);
 assert.equal(full.steps.filter((step) => step.type === "Ave Maria").length, 50);
 assert.equal(full.steps.at(-2).title, "Salve Regina");
 assert.equal(full.steps.filter((step) => step.type === "Mistero").length, 5);
-full.steps.filter((step) => step.type === "Mistero").forEach((step) => {
+full.steps.filter((step) => step.type === "Mistero").forEach((step, index) => {
   assert.ok(step.text.length > 40, `${step.title} deve includere il passo biblico`);
   assert.match(step.scriptureSource, /^(Dal Vangelo secondo|Dal libro dell'Apocalisse)/);
   assert.ok(step.scriptureReference, `${step.title} deve mostrare il riferimento biblico`);
   assert.equal(step.largeBeadCard, true);
   assert.deepEqual(
     step.speechParts.map((part) => part.speaker),
-    ["leader", "assembly", "leader", "leader", "assembly"],
+    index === 0
+      ? ["leader", "assembly", "leader", "assembly", "leader", "leader", "assembly"]
+      : ["leader", "assembly", "leader", "leader", "assembly"],
     `${step.title} deve recitare Gloria, versetto e Padre Nostro in un unico passaggio`,
   );
 });
 assert.equal(full.steps.some((step) => step.title === "Preghiera di Fatima"), false);
+assert.equal(full.steps.some((step) => step.title === "Credo"), false);
+assert.equal(full.steps.some((step) => step.id.startsWith("opening-hail")), false);
+assert.equal(full.steps.some((step) => step.id === "opening-sign"), false);
+assert.equal(full.steps[0].includeOpeningSign, true);
 
 full.selectedMysteries.forEach((mystery, decadeIndex) => {
   const largeBeadSteps = full.steps
@@ -74,11 +80,11 @@ const short = rosary.buildRosary({
   full: false,
   shortMysteryIndex: 4,
 });
-assert.equal(short.beads.length, 16);
-assert.equal(short.steps.length, 20);
+assert.equal(short.beads.length, 12);
+assert.equal(short.steps.length, 14);
 assert.equal(short.selectedMysteries[0].mysteryNumber, 5);
-assert.equal(rosary.getBeadCode(short.beads[4]), "Mis.5");
-assert.equal(rosary.getBeadCode(short.beads[14]), "Mis.5-10");
+assert.equal(rosary.getBeadCode(short.beads[0]), "Mis.5");
+assert.equal(rosary.getBeadCode(short.beads[10]), "Mis.5-10");
 
 const cana = rosary.buildRosary({
   setChoice: "luminous",
@@ -96,7 +102,11 @@ const withIntention = rosary.buildRosary({
   intention: "la mia famiglia",
   speakIntention: true,
 });
-assert.equal(withIntention.steps.length, 21);
-assert.match(withIntention.steps.find((step) => step.id === "opening-intention").text, /la mia famiglia/);
+assert.equal(withIntention.steps.length, 14);
+assert.match(withIntention.steps[0].intentionText, /la mia famiglia/);
+assert.match(
+  withIntention.steps[0].speechParts.map((part) => part.text).join(" "),
+  /la mia famiglia/,
+);
 
 console.log("Rosary data tests passed");

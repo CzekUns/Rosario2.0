@@ -498,7 +498,6 @@ input:focus-visible {
   scrollbar-width: thin;
 }
 
-.card-topline,
 .step-heading {
   display: flex;
   align-items: center;
@@ -506,17 +505,9 @@ input:focus-visible {
   gap: 0.8rem;
 }
 
-.card-topline {
-  color: var(--gold-dark);
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .step-heading {
   justify-content: flex-start;
-  margin-top: clamp(1.6rem, 4vh, 3rem);
+  margin-top: 0;
 }
 
 .step-heading > span {
@@ -595,7 +586,7 @@ input:focus-visible {
 
 .large-bead-card {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.85rem;
   padding: 0.9rem;
   border: 1px solid rgba(133, 91, 32, 0.18);
   border-radius: 18px;
@@ -603,8 +594,54 @@ input:focus-visible {
 }
 
 .large-bead-card__prayer {
-  color: #4b3a30;
-  font-style: italic;
+  display: flex;
+  align-items: center;
+  min-height: 3.2rem;
+  padding: 0.65rem 0.82rem;
+  color: var(--ink);
+  border-left: 4px solid var(--gold);
+  border-radius: 12px;
+  background: rgba(244, 205, 112, 0.2);
+  font-family: var(--sans);
+  font-size: clamp(1.02rem, 2vw, 1.28rem);
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.large-bead-card__sign {
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.large-bead-card__title {
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+.large-bead-card__intention {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  background: rgba(145, 75, 77, 0.08);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.large-bead-card__intention small {
+  color: var(--rose);
+  font-family: var(--sans);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 .large-bead-card__reading {
@@ -1377,16 +1414,9 @@ input:focus-visible {
     padding: 1rem 0.82rem;
   }
 
-  .card-topline {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.2rem;
-    font-size: 0.7rem;
-  }
-
   .step-heading {
     flex-wrap: wrap;
-    margin-top: 1.25rem;
+    margin-top: 0;
     gap: 0.4rem;
   }
 

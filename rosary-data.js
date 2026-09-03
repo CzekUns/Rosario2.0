@@ -246,7 +246,7 @@
   }
 
   function getDecadeBeadIndex(decadeIndex) {
-    return 4 + decadeIndex * 11;
+    return decadeIndex * 11;
   }
 
   function getHailMaryBeadIndex(decadeIndex, hailIndex) {
@@ -254,16 +254,11 @@
   }
 
   function getFinalBeadIndex(decadeCount) {
-    return 4 + decadeCount * 11;
+    return decadeCount * 11;
   }
 
   function buildRosaryBeads(decadeCount = 5, mysteryNumbers = []) {
-    const beads = [
-      { kind: "large", role: "incipit" },
-      { kind: "small", role: "opening-hail", openingIndex: 0 },
-      { kind: "small", role: "opening-hail", openingIndex: 1 },
-      { kind: "small", role: "opening-hail", openingIndex: 2 },
-    ];
+    const beads = [];
 
     for (let decadeIndex = 0; decadeIndex < decadeCount; decadeIndex += 1) {
       const mysteryNumber = mysteryNumbers[decadeIndex] || decadeIndex + 1;
@@ -319,38 +314,10 @@
       : [{ ...set.mysteries[safeShortIndex], mysteryNumber: safeShortIndex + 1 }];
     const mysteryNumbers = selectedMysteries.map((mystery) => mystery.mysteryNumber);
     const beads = buildRosaryBeads(selectedMysteries.length, mysteryNumbers);
-    const steps = [
-      createStep("opening-sign", "Inizio", "Segno della Croce", prayers.sign, 0, {
-        code: "Inizio",
-        primaryOnBead: true,
-      }),
-      createStep("opening-creed", "Apertura", "Credo", prayers.creed, 0, {
-        code: "Credo",
-      }),
-      createStep("opening-our-father", "Apertura", "Padre Nostro", prayers.ourFather, 0, {
-        code: "Aper.-P",
-      }),
-      createStep("opening-hail-1", "Apertura", "Ave Maria per la fede", prayers.hailMary, 1, {
-        code: "Fede",
-        primaryOnBead: true,
-      }),
-      createStep("opening-hail-2", "Apertura", "Ave Maria per la speranza", prayers.hailMary, 2, {
-        code: "Speranza",
-        primaryOnBead: true,
-      }),
-      createStep("opening-hail-3", "Apertura", "Ave Maria per la carità", prayers.hailMary, 3, {
-        code: "Carità",
-        primaryOnBead: true,
-      }),
-    ];
-
-    if (speakIntention && String(intention || "").trim()) {
-      steps.push(
-        createStep("opening-intention", "Affidamento", "Intenzione personale", buildIntentionText(intention), 3, {
-          code: "Nodo",
-        }),
-      );
-    }
+    const steps = [];
+    const intentionText = speakIntention && String(intention || "").trim()
+      ? buildIntentionText(intention)
+      : "";
 
     selectedMysteries.forEach((mystery, decadeIndex) => {
       const {
@@ -370,7 +337,13 @@
           scriptureSource,
           scriptureReference,
           largeBeadCard: true,
+          includeOpeningSign: decadeIndex === 0,
+          intentionText: decadeIndex === 0 ? intentionText : "",
           speechParts: freezeSpeechParts([
+            ...(decadeIndex === 0 ? prayerParts.sign : []),
+            ...(decadeIndex === 0 && intentionText
+              ? [{ speaker: "leader", text: intentionText }]
+              : []),
             ...prayerParts.glory,
             { speaker: "leader", text: `${scriptureSource}. ${scriptureText}` },
             ...prayerParts.ourFather,
@@ -427,8 +400,6 @@
 
   function getBeadCode(bead) {
     if (!bead) return "";
-    if (bead.role === "incipit") return "Inizio";
-    if (bead.role === "opening-hail") return ["Fede", "Speranza", "Carità"][bead.openingIndex];
     if (bead.role === "decade") return `Mis.${bead.mysteryNumber}`;
     if (bead.role === "hail-mary") return `Mis.${bead.mysteryNumber}-${bead.hailIndex + 1}`;
     return "Fine";
@@ -436,10 +407,6 @@
 
   function getBeadLabel(bead) {
     if (!bead) return "Grano del Rosario";
-    if (bead.role === "incipit") return "Inizio del Rosario";
-    if (bead.role === "opening-hail") {
-      return `Ave Maria di apertura per ${["la fede", "la speranza", "la carità"][bead.openingIndex]}`;
-    }
     if (bead.role === "decade") {
       return `Gloria, mistero ${bead.mysteryNumber} e Padre Nostro`;
     }

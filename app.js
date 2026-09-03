@@ -35,8 +35,6 @@ const elements = {
   speechSupport: document.querySelector("#speechSupport"),
   intentionInput: document.querySelector("#intentionInput"),
   speakIntentionToggle: document.querySelector("#speakIntentionToggle"),
-  modeLabel: document.querySelector("#modeLabel"),
-  durationEstimate: document.querySelector("#durationEstimate"),
   setLabel: document.querySelector("#setLabel"),
 };
 
@@ -206,6 +204,7 @@ function updateUi({ syncRail = false, announce = false, animateRail = true } = {
     : Math.round((state.currentIndex / (model.steps.length - 1)) * 100);
 
   elements.prayerTitle.textContent = step.title;
+  elements.prayerTitle.hidden = Boolean(step.largeBeadCard);
   renderPrayerText(step);
   elements.currentStepType.textContent = step.type;
   elements.currentStepTitle.textContent = step.title;
@@ -213,8 +212,6 @@ function updateUi({ syncRail = false, announce = false, animateRail = true } = {
   elements.stepCode.textContent = step.code;
   elements.progressFill.style.width = `${progress}%`;
   elements.progressBar.setAttribute("aria-valuenow", String(progress));
-  elements.modeLabel.textContent = state.full ? "Rosario completo" : "Una decina";
-  elements.durationEstimate.textContent = state.full ? "circa 25 minuti" : "circa 8 minuti";
   elements.setLabel.textContent = model.set.label;
   elements.shortMysteryField.hidden = state.full;
 
@@ -415,9 +412,31 @@ function renderPrayerText(step) {
     card.className = "large-bead-card";
     card.setAttribute("aria-label", parts.map((part) => part.text).join(" "));
 
+    if (step.includeOpeningSign) {
+      const sign = document.createElement("span");
+      sign.className = "large-bead-card__sign";
+      sign.textContent = "Segno della Croce...";
+      card.appendChild(sign);
+    }
+
+    if (step.intentionText) {
+      const intention = document.createElement("span");
+      intention.className = "large-bead-card__intention";
+      const intentionLabel = document.createElement("small");
+      intentionLabel.textContent = "Intenzione personale";
+      const intentionBody = document.createElement("span");
+      intentionBody.textContent = step.intentionText;
+      intention.append(intentionLabel, intentionBody);
+      card.appendChild(intention);
+    }
+
     const glory = document.createElement("span");
     glory.className = "large-bead-card__prayer";
     glory.textContent = "Gloria al Padre...";
+
+    const mysteryTitle = document.createElement("strong");
+    mysteryTitle.className = "large-bead-card__title";
+    mysteryTitle.textContent = step.title;
 
     const reading = document.createElement("span");
     reading.className = "large-bead-card__reading";
@@ -431,7 +450,7 @@ function renderPrayerText(step) {
     ourFather.className = "large-bead-card__prayer";
     ourFather.textContent = "Padre Nostro...";
 
-    card.append(glory, reading, ourFather);
+    card.append(glory, mysteryTitle, reading, ourFather);
     elements.prayerText.appendChild(card);
     return;
   }
