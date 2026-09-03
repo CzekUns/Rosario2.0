@@ -24,6 +24,8 @@ assert.match(styles, /touch-action: none/);
 assert.match(html, /class="bead-stage grip-window"/);
 assert.doesNotMatch(app, /className = "bead-code"/);
 assert.match(app, /if \(step\.displayText\)/);
+assert.match(app, /if \(step\.largeBeadCard\)/);
+assert.match(app, /large-bead-card__reading/);
 assert.doesNotMatch(html, /id="progressLabel"/);
 assert.match(styles, /clamp\(9\.35rem, 16vw, 12rem\)/);
 assert.match(styles, /clamp\(5\.8rem, 22\.67vw, 7\.33rem\)/);

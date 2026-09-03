@@ -362,32 +362,20 @@
       } = mystery;
       const prefix = `${setId}-m${mysteryNumber}`;
       const decadeBeadIndex = getDecadeBeadIndex(decadeIndex);
-      const previousMystery = selectedMysteries[decadeIndex - 1];
-      const gloryId = previousMystery
-        ? `${setId}-m${previousMystery.mysteryNumber}-glory`
-        : "opening-glory";
-      const gloryCode = previousMystery
-        ? `Mis.${previousMystery.mysteryNumber}-G`
-        : "Aper.-G";
 
       steps.push(
-        createStep(gloryId, "Gloria", "Gloria al Padre", prayers.glory, decadeBeadIndex, {
-          code: gloryCode,
-          mysteryNumber: previousMystery?.mysteryNumber,
-          primaryOnBead: true,
-        }),
         createStep(prefix, "Mistero", `${mysteryNumber}. ${title}`, scriptureText, decadeBeadIndex, {
           code: `Mis.${mysteryNumber}`,
           mysteryNumber,
           scriptureSource,
           scriptureReference,
+          largeBeadCard: true,
           speechParts: freezeSpeechParts([
+            ...prayerParts.glory,
             { speaker: "leader", text: `${scriptureSource}. ${scriptureText}` },
+            ...prayerParts.ourFather,
           ]),
-        }),
-        createStep(`${prefix}-our-father`, "Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex, {
-          code: `Mis.${mysteryNumber}-P`,
-          mysteryNumber,
+          primaryOnBead: true,
         }),
       );
 

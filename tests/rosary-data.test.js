@@ -24,7 +24,7 @@ expectedByDay.forEach((expected, day) => {
 
 const full = rosary.buildRosary({ setChoice: "joyful", full: true });
 assert.equal(full.beads.length, 60);
-assert.equal(full.steps.length, 74);
+assert.equal(full.steps.length, 64);
 assert.equal(full.steps.filter((step) => step.type === "Ave Maria").length, 50);
 assert.equal(full.steps.at(-2).title, "Salve Regina");
 assert.equal(full.steps.filter((step) => step.type === "Mistero").length, 5);
@@ -32,6 +32,12 @@ full.steps.filter((step) => step.type === "Mistero").forEach((step) => {
   assert.ok(step.text.length > 40, `${step.title} deve includere il passo biblico`);
   assert.match(step.scriptureSource, /^(Dal Vangelo secondo|Dal libro dell'Apocalisse)/);
   assert.ok(step.scriptureReference, `${step.title} deve mostrare il riferimento biblico`);
+  assert.equal(step.largeBeadCard, true);
+  assert.deepEqual(
+    step.speechParts.map((part) => part.speaker),
+    ["leader", "assembly", "leader", "leader", "assembly"],
+    `${step.title} deve recitare Gloria, versetto e Padre Nostro in un unico passaggio`,
+  );
 });
 assert.equal(full.steps.some((step) => step.title === "Preghiera di Fatima"), false);
 
@@ -41,8 +47,8 @@ full.selectedMysteries.forEach((mystery, decadeIndex) => {
     .map((step) => step.type);
   assert.deepEqual(
     largeBeadSteps,
-    ["Gloria", "Mistero", "Padre Nostro"],
-    `Il grano grande ${decadeIndex + 1} deve contenere Gloria, Mistero e Padre Nostro`,
+    ["Mistero"],
+    `Il grano grande ${decadeIndex + 1} deve richiedere un solo avanzamento`,
   );
 });
 
@@ -69,7 +75,7 @@ const short = rosary.buildRosary({
   shortMysteryIndex: 4,
 });
 assert.equal(short.beads.length, 16);
-assert.equal(short.steps.length, 22);
+assert.equal(short.steps.length, 20);
 assert.equal(short.selectedMysteries[0].mysteryNumber, 5);
 assert.equal(rosary.getBeadCode(short.beads[4]), "Mis.5");
 assert.equal(rosary.getBeadCode(short.beads[14]), "Mis.5-10");
@@ -90,7 +96,7 @@ const withIntention = rosary.buildRosary({
   intention: "la mia famiglia",
   speakIntention: true,
 });
-assert.equal(withIntention.steps.length, 23);
+assert.equal(withIntention.steps.length, 21);
 assert.match(withIntention.steps.find((step) => step.id === "opening-intention").text, /la mia famiglia/);
 
 console.log("Rosary data tests passed");

@@ -410,6 +410,32 @@ function renderPrayerText(step) {
   const parts = getSpeechParts(step);
   elements.prayerText.replaceChildren();
 
+  if (step.largeBeadCard) {
+    const card = document.createElement("span");
+    card.className = "large-bead-card";
+    card.setAttribute("aria-label", parts.map((part) => part.text).join(" "));
+
+    const glory = document.createElement("span");
+    glory.className = "large-bead-card__prayer";
+    glory.textContent = "Gloria al Padre...";
+
+    const reading = document.createElement("span");
+    reading.className = "large-bead-card__reading";
+    const source = document.createElement("small");
+    source.textContent = `${step.scriptureSource} · ${step.scriptureReference}`;
+    const scripture = document.createElement("span");
+    scripture.textContent = step.text;
+    reading.append(source, scripture);
+
+    const ourFather = document.createElement("span");
+    ourFather.className = "large-bead-card__prayer";
+    ourFather.textContent = "Padre Nostro...";
+
+    card.append(glory, reading, ourFather);
+    elements.prayerText.appendChild(card);
+    return;
+  }
+
   if (step.displayText) {
     const abbreviation = document.createElement("span");
     abbreviation.className = "prayer-abbreviation";
