@@ -586,6 +586,13 @@ input:focus-visible {
   color: var(--rose);
 }
 
+.prayer-abbreviation {
+  padding-left: 0.85rem;
+  color: #4b3a30;
+  border-left: 2px solid rgba(133, 91, 32, 0.24);
+  font-style: italic;
+}
+
 .scripture-reference {
   justify-self: start;
   margin-left: 0.85rem;

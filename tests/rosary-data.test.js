@@ -8,8 +8,10 @@ Object.values(rosary.mysterySets).forEach((set) => {
   assert.equal(set.mysteries.length, 5, `${set.label} deve contenere cinque misteri`);
   set.mysteries.forEach((mystery) => {
     assert.ok(mystery.title, "Ogni mistero deve avere un titolo");
+    assert.ok(mystery.scriptureSource, `${mystery.title} deve indicare il libro biblico`);
     assert.ok(mystery.scriptureReference, `${mystery.title} deve avere un riferimento biblico`);
-    assert.ok(mystery.narrative.length > 120, `${mystery.title} deve raccontare la scena contemplata`);
+    assert.ok(mystery.scriptureText.length > 40, `${mystery.title} deve proclamare un passo biblico`);
+    assert.equal(mystery.narrative, undefined, `${mystery.title} non deve contenere un riassunto inventato`);
   });
 });
 
@@ -21,14 +23,37 @@ expectedByDay.forEach((expected, day) => {
 });
 
 const full = rosary.buildRosary({ setChoice: "joyful", full: true });
-assert.equal(full.beads.length, 61);
-assert.equal(full.steps.length, 79);
+assert.equal(full.beads.length, 60);
+assert.equal(full.steps.length, 74);
 assert.equal(full.steps.filter((step) => step.type === "Ave Maria").length, 50);
 assert.equal(full.steps.at(-2).title, "Salve Regina");
 assert.equal(full.steps.filter((step) => step.type === "Mistero").length, 5);
 full.steps.filter((step) => step.type === "Mistero").forEach((step) => {
-  assert.ok(step.text.length > 150, `${step.title} deve includere il racconto evangelico`);
+  assert.ok(step.text.length > 40, `${step.title} deve includere il passo biblico`);
+  assert.match(step.scriptureSource, /^(Dal Vangelo secondo|Dal libro dell'Apocalisse)/);
   assert.ok(step.scriptureReference, `${step.title} deve mostrare il riferimento biblico`);
+});
+assert.equal(full.steps.some((step) => step.title === "Preghiera di Fatima"), false);
+
+full.selectedMysteries.forEach((mystery, decadeIndex) => {
+  const largeBeadSteps = full.steps
+    .filter((step) => step.beadIndex === rosary.getDecadeBeadIndex(decadeIndex))
+    .map((step) => step.type);
+  assert.deepEqual(
+    largeBeadSteps,
+    ["Gloria", "Mistero", "Padre Nostro"],
+    `Il grano grande ${decadeIndex + 1} deve contenere Gloria, Mistero e Padre Nostro`,
+  );
+});
+
+full.steps.filter((step) => step.type === "Ave Maria").forEach((step) => {
+  assert.equal(step.displayText, "Ave Maria...");
+});
+full.steps.filter((step) => step.title === "Padre Nostro").forEach((step) => {
+  assert.equal(step.displayText, "Padre Nostro...");
+});
+full.steps.filter((step) => step.title === "Gloria al Padre").forEach((step) => {
+  assert.equal(step.displayText, "Gloria al Padre...");
 });
 
 full.beads.forEach((_, beadIndex) => {
@@ -43,11 +68,11 @@ const short = rosary.buildRosary({
   full: false,
   shortMysteryIndex: 4,
 });
-assert.equal(short.beads.length, 17);
-assert.equal(short.steps.length, 23);
+assert.equal(short.beads.length, 16);
+assert.equal(short.steps.length, 22);
 assert.equal(short.selectedMysteries[0].mysteryNumber, 5);
-assert.equal(rosary.getBeadCode(short.beads[5]), "Mis.5");
-assert.equal(rosary.getBeadCode(short.beads[15]), "Mis.5-10");
+assert.equal(rosary.getBeadCode(short.beads[4]), "Mis.5");
+assert.equal(rosary.getBeadCode(short.beads[14]), "Mis.5-10");
 
 const cana = rosary.buildRosary({
   setChoice: "luminous",
@@ -55,8 +80,9 @@ const cana = rosary.buildRosary({
   shortMysteryIndex: 1,
 }).steps.find((step) => step.type === "Mistero");
 assert.match(cana.text, /mancare il vino/i);
-assert.match(cana.text, /sei giare/i);
-assert.equal(cana.scriptureReference, "Gv 2,1-12");
+assert.match(cana.text, /qualsiasi cosa vi dica, fatela/i);
+assert.equal(cana.scriptureSource, "Dal Vangelo secondo Giovanni");
+assert.equal(cana.scriptureReference, "Gv 2,3.5");
 
 const withIntention = rosary.buildRosary({
   setChoice: "luminous",
@@ -64,7 +90,7 @@ const withIntention = rosary.buildRosary({
   intention: "la mia famiglia",
   speakIntention: true,
 });
-assert.equal(withIntention.steps.length, 24);
+assert.equal(withIntention.steps.length, 23);
 assert.match(withIntention.steps.find((step) => step.id === "opening-intention").text, /la mia famiglia/);
 
 console.log("Rosary data tests passed");

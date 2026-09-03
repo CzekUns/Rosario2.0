@@ -410,21 +410,29 @@ function renderPrayerText(step) {
   const parts = getSpeechParts(step);
   elements.prayerText.replaceChildren();
 
-  parts.forEach((part) => {
-    const segment = document.createElement("span");
-    segment.className = `prayer-part prayer-part--${part.speaker}`;
-    const label = document.createElement("small");
-    label.textContent = part.speaker === "assembly" ? "Tutti" : "Guida";
-    const text = document.createElement("span");
-    text.textContent = part.text;
-    segment.append(label, text);
-    elements.prayerText.appendChild(segment);
-  });
+  if (step.displayText) {
+    const abbreviation = document.createElement("span");
+    abbreviation.className = "prayer-abbreviation";
+    abbreviation.textContent = step.displayText;
+    abbreviation.setAttribute("aria-label", parts.map((part) => part.text).join(" "));
+    elements.prayerText.appendChild(abbreviation);
+  } else {
+    parts.forEach((part) => {
+      const segment = document.createElement("span");
+      segment.className = `prayer-part prayer-part--${part.speaker}`;
+      const label = document.createElement("small");
+      label.textContent = part.speaker === "assembly" ? "Tutti" : "Guida";
+      const text = document.createElement("span");
+      text.textContent = part.text;
+      segment.append(label, text);
+      elements.prayerText.appendChild(segment);
+    });
+  }
 
   if (step.scriptureReference) {
     const reference = document.createElement("small");
     reference.className = "scripture-reference";
-    reference.textContent = `Riferimento biblico · ${step.scriptureReference}`;
+    reference.textContent = `${step.scriptureSource} · ${step.scriptureReference}`;
     elements.prayerText.appendChild(reference);
   }
 }
