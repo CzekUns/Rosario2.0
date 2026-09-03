@@ -586,6 +586,20 @@ input:focus-visible {
   color: var(--rose);
 }
 
+.scripture-reference {
+  justify-self: start;
+  margin-left: 0.85rem;
+  padding: 0.38rem 0.62rem;
+  color: var(--gold-dark);
+  border: 1px solid rgba(133, 91, 32, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 250, 238, 0.46);
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 #prayerText[data-speaker="leader"] .prayer-part:not(.prayer-part--leader),
 #prayerText[data-speaker="assembly"] .prayer-part:not(.prayer-part--assembly) {
   opacity: 0.46;
@@ -599,7 +613,7 @@ input:focus-visible {
 
 .progress-wrap {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   margin-top: clamp(1.8rem, 5vh, 3.5rem);
@@ -619,14 +633,6 @@ input:focus-visible {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--rose), var(--gold));
   transition: width 220ms ease;
-}
-
-#progressLabel {
-  min-width: 2.6rem;
-  color: var(--ink-soft);
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-align: right;
 }
 
 .prayer-settings {

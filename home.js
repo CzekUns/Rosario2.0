@@ -19,7 +19,7 @@ const mysteryList = document.querySelector("#todayMysteryList");
 mysteryList.innerHTML = "";
 todaySet.mysteries.forEach((mystery) => {
   const item = document.createElement("li");
-  item.textContent = mystery;
+  item.textContent = mystery.title;
   mysteryList.appendChild(item);
 });
 

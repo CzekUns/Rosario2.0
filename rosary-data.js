@@ -62,6 +62,10 @@
     Object.keys(prayerParts).map((key) => [prayers[key], prayerParts[key]]),
   );
 
+  function createMystery(title, scriptureReference, narrative) {
+    return Object.freeze({ title, scriptureReference, narrative });
+  }
+
   const mysterySets = Object.freeze({
     joyful: Object.freeze({
       id: "joyful",
@@ -69,11 +73,31 @@
       shortLabel: "Gaudiosi",
       days: "lunedì e sabato",
       mysteries: Object.freeze([
-        "L'Annunciazione dell'Angelo a Maria",
-        "La visita di Maria a Elisabetta",
-        "La nascita di Gesù a Betlemme",
-        "La presentazione di Gesù al Tempio",
-        "Il ritrovamento di Gesù nel Tempio",
+        createMystery(
+          "L'Annunciazione dell'Angelo a Maria",
+          "Lc 1,26-38",
+          "L'angelo Gabriele è mandato da Dio a Nazaret, da Maria. Le annuncia che concepirà Gesù per opera dello Spirito Santo. Maria, pur domandandosi come avverrà, si affida liberamente alla parola di Dio e accoglie la sua chiamata.",
+        ),
+        createMystery(
+          "La visita di Maria a Elisabetta",
+          "Lc 1,39-56",
+          "Maria si mette in viaggio verso la casa di Elisabetta. Al suo saluto, il bambino sussulta nel grembo della cugina, che la riconosce benedetta fra le donne. Maria allora loda Dio per le grandi opere compiute nella sua umiltà.",
+        ),
+        createMystery(
+          "La nascita di Gesù a Betlemme",
+          "Lc 2,1-20",
+          "Maria e Giuseppe giungono a Betlemme, dove nasce Gesù. Maria lo avvolge in fasce e lo depone in una mangiatoia. Gli angeli portano ai pastori l'annuncio di una grande gioia; essi accorrono, trovano il bambino e raccontano ciò che hanno udito.",
+        ),
+        createMystery(
+          "La presentazione di Gesù al Tempio",
+          "Lc 2,22-38",
+          "Maria e Giuseppe portano Gesù al Tempio per offrirlo al Signore. Simeone prende il bambino tra le braccia, riconosce in lui la salvezza preparata per tutti i popoli e annuncia a Maria che una spada attraverserà la sua anima. Anche Anna rende lode a Dio.",
+        ),
+        createMystery(
+          "Il ritrovamento di Gesù nel Tempio",
+          "Lc 2,41-52",
+          "Dopo tre giorni di ricerca, Maria e Giuseppe trovano Gesù nel Tempio, seduto tra i maestri mentre li ascolta e li interroga. Gesù ricorda loro che deve occuparsi delle cose del Padre suo, poi torna a Nazaret e rimane loro sottomesso.",
+        ),
       ]),
     }),
     luminous: Object.freeze({
@@ -82,11 +106,31 @@
       shortLabel: "Luminosi",
       days: "giovedì",
       mysteries: Object.freeze([
-        "Il Battesimo di Gesù nel Giordano",
-        "Le nozze di Cana",
-        "L'annuncio del Regno di Dio",
-        "La Trasfigurazione di Gesù",
-        "L'istituzione dell'Eucaristia",
+        createMystery(
+          "Il Battesimo di Gesù nel Giordano",
+          "Mt 3,13-17",
+          "Gesù raggiunge Giovanni al Giordano e riceve il battesimo. Uscendo dall'acqua, i cieli si aprono, lo Spirito di Dio scende su di lui come una colomba e la voce del Padre lo manifesta come il Figlio amato nel quale ha posto il suo compiacimento.",
+        ),
+        createMystery(
+          "Le nozze di Cana",
+          "Gv 2,1-12",
+          "Durante una festa di nozze a Cana viene a mancare il vino. Maria se ne accorge e invita i servi a fidarsi di Gesù. Egli fa riempire d'acqua sei giare e trasforma quell'acqua in vino buono: è il primo dei suoi segni e i discepoli credono in lui.",
+        ),
+        createMystery(
+          "L'annuncio del Regno di Dio",
+          "Mc 1,14-15",
+          "Gesù percorre la Galilea annunciando che il tempo è compiuto e il Regno di Dio è vicino. Invita tutti alla conversione e alla fede nel Vangelo; con il perdono, le guarigioni e la vicinanza agli ultimi rende già presente la misericordia del Padre.",
+        ),
+        createMystery(
+          "La Trasfigurazione di Gesù",
+          "Lc 9,28-36",
+          "Gesù sale sul monte con Pietro, Giovanni e Giacomo. Mentre prega, il suo volto cambia d'aspetto e le sue vesti diventano splendenti; Mosè ed Elia parlano con lui. Dalla nube la voce del Padre indica Gesù come il Figlio eletto e invita ad ascoltarlo.",
+        ),
+        createMystery(
+          "L'istituzione dell'Eucaristia",
+          "Lc 22,14-20",
+          "Nell'ultima cena Gesù prende il pane, rende grazie, lo spezza e lo dona ai discepoli come suo corpo offerto per loro. Poi consegna il calice della nuova alleanza nel suo sangue e chiede di ripetere quel gesto in sua memoria.",
+        ),
       ]),
     }),
     sorrowful: Object.freeze({
@@ -95,11 +139,31 @@
       shortLabel: "Dolorosi",
       days: "martedì e venerdì",
       mysteries: Object.freeze([
-        "L'agonia di Gesù nel Getsemani",
-        "La flagellazione di Gesù",
-        "L'incoronazione di spine",
-        "Gesù porta la Croce al Calvario",
-        "La crocifissione e morte di Gesù",
+        createMystery(
+          "L'agonia di Gesù nel Getsemani",
+          "Lc 22,39-46",
+          "Nel Getsemani Gesù prega mentre i discepoli, vinti dalla tristezza, si addormentano. Nell'angoscia affida al Padre la propria paura e sceglie di compiere la sua volontà. Un angelo lo conforta, ed egli si rialza per affrontare ciò che sta per accadere.",
+        ),
+        createMystery(
+          "La flagellazione di Gesù",
+          "Gv 18,38–19,1",
+          "Pilato dichiara di non trovare colpa in Gesù, ma cede alla pressione della folla. Fa liberare Barabba e consegna Gesù ai soldati perché sia flagellato. L'innocente subisce la violenza senza rispondere con altra violenza.",
+        ),
+        createMystery(
+          "L'incoronazione di spine",
+          "Mt 27,27-31",
+          "I soldati conducono Gesù nel pretorio, gli mettono addosso un mantello scarlatto e intrecciano una corona di spine sul suo capo. Gli pongono una canna nella mano e lo deridono chiamandolo re, poi lo percuotono e lo conducono alla crocifissione.",
+        ),
+        createMystery(
+          "Gesù porta la Croce al Calvario",
+          "Lc 23,26-32",
+          "Mentre Gesù viene condotto al luogo della crocifissione, i soldati costringono Simone di Cirene a portare la croce dietro di lui. Una folla lo segue e alcune donne piangono; anche in quel cammino di dolore Gesù rivolge loro una parola di verità.",
+        ),
+        createMystery(
+          "La crocifissione e morte di Gesù",
+          "Lc 23,33-46",
+          "Sul Calvario Gesù è crocifisso tra due malfattori. Prega perché i suoi persecutori siano perdonati e promette il paradiso al condannato che si affida a lui. Dopo aver consegnato il proprio spirito nelle mani del Padre, muore e il centurione riconosce la sua innocenza.",
+        ),
       ]),
     }),
     glorious: Object.freeze({
@@ -108,11 +172,31 @@
       shortLabel: "Gloriosi",
       days: "mercoledì e domenica",
       mysteries: Object.freeze([
-        "La Risurrezione di Gesù",
-        "L'Ascensione di Gesù al cielo",
-        "La discesa dello Spirito Santo",
-        "L'Assunzione di Maria al cielo",
-        "L'incoronazione di Maria Regina del cielo e della terra",
+        createMystery(
+          "La Risurrezione di Gesù",
+          "Lc 24,1-12",
+          "All'alba le donne trovano la pietra rotolata via e il sepolcro vuoto. Due messaggeri ricordano loro che Gesù aveva annunciato la propria risurrezione. Esse corrono dagli apostoli; Pietro raggiunge il sepolcro e torna pieno di stupore per quanto è accaduto.",
+        ),
+        createMystery(
+          "L'Ascensione di Gesù al cielo",
+          "At 1,6-11",
+          "Gesù risorto promette agli apostoli la forza dello Spirito Santo e li invia come suoi testimoni fino ai confini della terra. Mentre essi lo guardano, viene elevato e una nube lo sottrae ai loro occhi; i discepoli ricevono la promessa del suo ritorno.",
+        ),
+        createMystery(
+          "La discesa dello Spirito Santo",
+          "At 2,1-13",
+          "Nel giorno di Pentecoste i discepoli sono riuniti insieme. Un fragore come di vento riempie la casa e lingue come di fuoco si posano su ciascuno. Tutti vengono colmati di Spirito Santo e cominciano ad annunciare le opere di Dio nelle lingue dei popoli.",
+        ),
+        createMystery(
+          "L'Assunzione di Maria al cielo",
+          "Lc 1,48-49",
+          "Nel Magnificat Maria proclama che tutte le generazioni la chiameranno beata per le grandi cose compiute in lei dall'Onnipotente. La Chiesa contempla il compimento di questa promessa: terminata la sua vita terrena, Maria è accolta da Dio in cielo, in anima e corpo.",
+        ),
+        createMystery(
+          "L'incoronazione di Maria Regina del cielo e della terra",
+          "Ap 12,1",
+          "L'Apocalisse mostra nel cielo una donna vestita di sole, con la luna sotto i piedi e una corona di dodici stelle. In questa immagine la Chiesa contempla Maria accanto al Figlio risorto, partecipe della sua gloria e madre che continua a intercedere per il suo popolo.",
+        ),
       ]),
     }),
   });
@@ -203,8 +287,8 @@
     const set = mysterySets[setId];
     const safeShortIndex = Math.max(0, Math.min(Number(shortMysteryIndex) || 0, 4));
     const selectedMysteries = full
-      ? set.mysteries.map((title, index) => ({ title, mysteryNumber: index + 1 }))
-      : [{ title: set.mysteries[safeShortIndex], mysteryNumber: safeShortIndex + 1 }];
+      ? set.mysteries.map((mystery, index) => ({ ...mystery, mysteryNumber: index + 1 }))
+      : [{ ...set.mysteries[safeShortIndex], mysteryNumber: safeShortIndex + 1 }];
     const mysteryNumbers = selectedMysteries.map((mystery) => mystery.mysteryNumber);
     const beads = buildRosaryBeads(selectedMysteries.length, mysteryNumbers);
     const steps = [
@@ -245,15 +329,16 @@
     }
 
     selectedMysteries.forEach((mystery, decadeIndex) => {
-      const { mysteryNumber, title } = mystery;
+      const { mysteryNumber, title, scriptureReference, narrative } = mystery;
       const prefix = `${setId}-m${mysteryNumber}`;
       const decadeBeadIndex = getDecadeBeadIndex(decadeIndex);
       const lastHailBeadIndex = getHailMaryBeadIndex(decadeIndex, 9);
 
       steps.push(
-        createStep(prefix, "Mistero", `${mysteryNumber}. ${title}`, `Nel ${mysteryNumber}º mistero contempliamo: ${title}.`, decadeBeadIndex, {
+        createStep(prefix, "Mistero", `${mysteryNumber}. ${title}`, `Nel ${mysteryNumber}º mistero contempliamo ${title}. ${narrative}`, decadeBeadIndex, {
           code: `Mis.${mysteryNumber}`,
           mysteryNumber,
+          scriptureReference,
           primaryOnBead: true,
         }),
         createStep(`${prefix}-our-father`, "Padre Nostro", "Padre Nostro", prayers.ourFather, decadeBeadIndex, {

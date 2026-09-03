@@ -17,7 +17,6 @@ const elements = {
   stepCode: document.querySelector("#stepCode"),
   progressBar: document.querySelector("#progressBar"),
   progressFill: document.querySelector("#progressFill"),
-  progressLabel: document.querySelector("#progressLabel"),
   playPauseButton: document.querySelector("#playPauseButton"),
   playButtonLabel: document.querySelector("#playButtonLabel"),
   playIcon: document.querySelector(".play-icon"),
@@ -129,10 +128,10 @@ function populateMysteryOptions() {
   automaticOption.textContent = `Automatici: ${data.mysterySets[data.getTodaySetId()].shortLabel} oggi`;
 
   elements.shortMysterySelect.innerHTML = "";
-  resolvedSet.mysteries.forEach((title, index) => {
+  resolvedSet.mysteries.forEach((mystery, index) => {
     const option = document.createElement("option");
     option.value = String(index);
-    option.textContent = `${index + 1}. ${title}`;
+    option.textContent = `${index + 1}. ${mystery.title}`;
     elements.shortMysterySelect.appendChild(option);
   });
   elements.shortMysterySelect.value = String(state.shortMysteryIndex);
@@ -213,7 +212,6 @@ function updateUi({ syncRail = false, announce = false, animateRail = true } = {
   elements.currentStepCount.textContent = `${step.beadIndex + 1} di ${model.beads.length}`;
   elements.stepCode.textContent = step.code;
   elements.progressFill.style.width = `${progress}%`;
-  elements.progressLabel.textContent = `${progress}%`;
   elements.progressBar.setAttribute("aria-valuenow", String(progress));
   elements.modeLabel.textContent = state.full ? "Rosario completo" : "Una decina";
   elements.durationEstimate.textContent = state.full ? "circa 25 minuti" : "circa 8 minuti";
@@ -422,6 +420,13 @@ function renderPrayerText(step) {
     segment.append(label, text);
     elements.prayerText.appendChild(segment);
   });
+
+  if (step.scriptureReference) {
+    const reference = document.createElement("small");
+    reference.className = "scripture-reference";
+    reference.textContent = `Riferimento biblico · ${step.scriptureReference}`;
+    elements.prayerText.appendChild(reference);
+  }
 }
 
 function stopSpeech() {
