@@ -125,20 +125,20 @@
           </div>
 
           <div class="reader-player" aria-label="Modalità e controlli della recita">
-            <div class="player-rate-control" data-audio-setting>
-              <span>Velocità audio</span>
-              <div class="audio-rate-toggle" role="group" aria-label="Velocità dell'audio">
-                <button type="button" data-speech-rate="1.2" aria-pressed="false">×1,2</button>
-                <button type="button" data-speech-rate="1.5" aria-pressed="false">×1,5</button>
-                <button type="button" data-speech-rate="1.7" aria-pressed="false">×1,7</button>
-              </div>
-            </div>
             <div class="player-action-row">
               <p id="interactionHint">Avvia la voce: la corona seguirà la recita.</p>
               <button class="play-button" id="playPauseButton" type="button" aria-label="Avvia la recita automatica">
                 <span class="play-icon" aria-hidden="true">▶</span>
                 <strong id="playButtonLabel">Avvia</strong>
               </button>
+              <div class="player-rate-control" data-audio-setting>
+                <span class="sr-only">Velocità audio</span>
+                <div class="audio-rate-toggle" role="group" aria-label="Velocità dell'audio">
+                  <button type="button" data-speech-rate="1.2" aria-pressed="false">×1,2</button>
+                  <button type="button" data-speech-rate="1.5" aria-pressed="false">×1,5</button>
+                  <button type="button" data-speech-rate="1.7" aria-pressed="false">×1,7</button>
+                </div>
+              </div>
             </div>
           </div>
         </article>

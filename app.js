@@ -174,21 +174,16 @@ function renderBeads() {
 
   model.beads.forEach((bead, beadIndex) => {
     const row = document.createElement("div");
-    const code = document.createElement("span");
     const beadShape = document.createElement("span");
 
     row.className = "bead-row";
     row.dataset.beadIndex = String(beadIndex);
     row.setAttribute("aria-hidden", "true");
 
-    code.className = "bead-code";
-    code.textContent = data.getBeadCode(bead);
-    code.dataset.defaultCode = code.textContent;
-
     beadShape.className = `bead${bead.kind === "large" ? " major" : ""}`;
     beadShape.setAttribute("aria-hidden", "true");
 
-    row.append(code, beadShape);
+    row.append(beadShape);
     elements.ring.appendChild(row);
   });
 
@@ -227,14 +222,12 @@ function updateUi({ syncRail = false, announce = false, animateRail = true } = {
 
   elements.ring.querySelectorAll(".bead-row").forEach((row) => {
     const beadIndex = Number(row.dataset.beadIndex);
-    const code = row.querySelector(".bead-code");
     const isActive = beadIndex === step.beadIndex;
     const isDone = getLastStepIndexForBead(beadIndex) < state.currentIndex;
 
     row.classList.toggle("active", isActive);
     row.classList.toggle("done", isDone);
     row.setAttribute("aria-hidden", isActive ? "false" : "true");
-    code.textContent = isActive ? step.code : code.dataset.defaultCode;
   });
 
   if (announce) {
