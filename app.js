@@ -69,6 +69,7 @@ let speechStatus = "idle";
 let activeSpeechRun = 0;
 let activeUtterance = null;
 let continuationTimer = null;
+let speechCheckpoint = null;
 let gripGesture = null;
 let settleTimer = null;
 let guidedStepHeardId = null;
@@ -482,43 +483,62 @@ function renderPrayerText(step) {
   }
 }
 
-function stopSpeech() {
+function stopSpeech({ preserveCheckpoint = false } = {}) {
   activeSpeechRun += 1;
   window.clearTimeout(continuationTimer);
   continuationTimer = null;
   activeUtterance = null;
   speechStatus = "idle";
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  if (!preserveCheckpoint) speechCheckpoint = null;
   updatePlayerUi();
 }
 
 function pauseSpeech() {
   if (!("speechSynthesis" in window) || speechStatus !== "speaking") return;
-  window.speechSynthesis.pause();
+  activeSpeechRun += 1;
+  window.clearTimeout(continuationTimer);
+  continuationTimer = null;
+  activeUtterance = null;
   speechStatus = "paused";
+  window.speechSynthesis.cancel();
+  elements.prayerText.removeAttribute("data-speaker");
   updatePlayerUi();
 }
 
 function resumeSpeech() {
   if (!("speechSynthesis" in window) || speechStatus !== "paused") return;
-  window.speechSynthesis.resume();
-  speechStatus = "speaking";
-  updatePlayerUi();
+  const checkpoint = speechCheckpoint;
+  speakCurrent({
+    continueAutomatically: checkpoint?.continueAutomatically
+      ?? state.interactionMode === "automatic",
+    resumeCheckpoint: checkpoint,
+  });
 }
 
-function speakCurrent({ continueAutomatically = true } = {}) {
+function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } = {}) {
   if (!("speechSynthesis" in window)) {
     updateSpeechStatus("Audio non disponibile");
     return;
   }
 
+  const step = model.steps[state.currentIndex];
+  const canResume = resumeCheckpoint?.stepId === step.id;
+  const startPartIndex = canResume ? resumeCheckpoint.partIndex : 0;
+  const startCharIndex = canResume ? resumeCheckpoint.charIndex : 0;
   stopSpeech();
   const runId = activeSpeechRun;
-  const step = model.steps[state.currentIndex];
   const parts = getSpeechParts(step);
+  speechCheckpoint = {
+    stepId: step.id,
+    partIndex: startPartIndex,
+    charIndex: startCharIndex,
+    continueAutomatically,
+  };
 
   function finishStep() {
     activeUtterance = null;
+    speechCheckpoint = null;
     speechStatus = "idle";
     elements.prayerText.removeAttribute("data-speaker");
 
@@ -543,7 +563,7 @@ function speakCurrent({ continueAutomatically = true } = {}) {
     }, pauseDuration);
   }
 
-  function speakPart(partIndex) {
+  function speakPart(partIndex, charIndex = 0) {
     if (runId !== activeSpeechRun) return;
     const part = parts[partIndex];
     if (!part) {
@@ -551,7 +571,11 @@ function speakCurrent({ continueAutomatically = true } = {}) {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(prepareSpeechText(part.text));
+    const completeText = prepareSpeechText(part.text);
+    const remainingText = completeText.slice(charIndex);
+    const leadingWhitespace = remainingText.length - remainingText.trimStart().length;
+    const textOffset = Math.min(completeText.length, charIndex + leadingWhitespace);
+    const utterance = new SpeechSynthesisUtterance(completeText.slice(textOffset));
     const isAssembly = part.speaker === "assembly";
     const guideVoice = getSelectedVoice();
     const selectedVoice = isAssembly ? getResponseVoice() : guideVoice;
@@ -563,21 +587,31 @@ function speakCurrent({ continueAutomatically = true } = {}) {
     if (selectedVoice) utterance.voice = selectedVoice;
 
     activeUtterance = utterance;
+    speechCheckpoint.partIndex = partIndex;
+    speechCheckpoint.charIndex = textOffset;
     utterance.onstart = () => {
       if (runId !== activeSpeechRun) return;
       speechStatus = "speaking";
       updatePlayerUi();
       elements.prayerText.dataset.speaker = part.speaker;
     };
+    utterance.onboundary = (event) => {
+      if (runId !== activeSpeechRun || !speechCheckpoint) return;
+      speechCheckpoint.partIndex = partIndex;
+      speechCheckpoint.charIndex = textOffset + event.charIndex;
+    };
     utterance.onend = () => {
       if (runId !== activeSpeechRun) return;
       activeUtterance = null;
       elements.prayerText.removeAttribute("data-speaker");
+      speechCheckpoint.partIndex = partIndex + 1;
+      speechCheckpoint.charIndex = 0;
       continuationTimer = window.setTimeout(() => speakPart(partIndex + 1), isAssembly ? 110 : 230);
     };
     utterance.onerror = (event) => {
       if (runId !== activeSpeechRun || ["canceled", "interrupted"].includes(event.error)) return;
       activeUtterance = null;
+      speechCheckpoint = null;
       elements.prayerText.removeAttribute("data-speaker");
       speechStatus = "idle";
       updatePlayerUi();
@@ -587,7 +621,7 @@ function speakCurrent({ continueAutomatically = true } = {}) {
     window.speechSynthesis.speak(utterance);
   }
 
-  speakPart(0);
+  speakPart(startPartIndex, startCharIndex);
 }
 
 function toggleSpeech() {

@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "rosario-2-v26-20260903";
+const CACHE_NAME = "rosario-2-v27-20260904";
 const APP_SHELL = [
   "./",
   "./index.html",

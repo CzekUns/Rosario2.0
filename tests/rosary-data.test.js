@@ -36,9 +36,13 @@ full.steps.filter((step) => step.type === "Mistero").forEach((step, index) => {
   assert.deepEqual(
     step.speechParts.map((part) => part.speaker),
     index === 0
-      ? ["leader", "assembly", "leader", "assembly", "leader", "leader", "assembly"]
-      : ["leader", "assembly", "leader", "leader", "assembly"],
+      ? ["leader", "assembly", "leader", "assembly", "leader", "leader", "leader", "assembly"]
+      : ["leader", "assembly", "leader", "leader", "leader", "assembly"],
     `${step.title} deve recitare Gloria, versetto e Padre Nostro in un unico passaggio`,
+  );
+  assert.ok(
+    step.speechParts.some((part) => part.text.includes(step.title.replace(/^\d+\.\s*/, ""))),
+    `${step.title} deve essere annunciato anche dalla voce`,
   );
 });
 assert.equal(full.steps.some((step) => step.title === "Preghiera di Fatima"), false);

@@ -345,6 +345,7 @@
               ? [{ speaker: "leader", text: intentionText }]
               : []),
             ...prayerParts.glory,
+            { speaker: "leader", text: `${mysteryNumber}º mistero. ${title}.` },
             { speaker: "leader", text: `${scriptureSource}. ${scriptureText}` },
             ...prayerParts.ourFather,
           ]),
