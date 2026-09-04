@@ -38,11 +38,19 @@ full.steps.filter((step) => step.type === "Mistero").forEach((step, index) => {
     index === 0
       ? ["leader", "assembly", "leader", "assembly", "leader", "leader", "leader", "assembly"]
       : ["leader", "assembly", "leader", "leader", "leader", "assembly"],
-    `${step.title} deve recitare Gloria, versetto e Padre Nostro in un unico passaggio`,
+    `${step.title} deve recitare Gloria, Vangelo e Padre Nostro in un unico passaggio`,
   );
   assert.ok(
     step.speechParts.some((part) => part.text.includes(step.title.replace(/^\d+\.\s*/, ""))),
     `${step.title} deve essere annunciato anche dalla voce`,
+  );
+  assert.ok(
+    step.speechParts.some((part) => part.text.includes(step.text)),
+    `${step.title} deve leggere integralmente il brano biblico anche nell'audio`,
+  );
+  assert.ok(
+    step.speechParts.some((part) => /Ascoltiamo la Parola (del Vangelo|della Scrittura)/.test(part.text)),
+    `${step.title} deve introdurre esplicitamente la lettura biblica`,
   );
 });
 assert.equal(full.steps.some((step) => step.title === "Preghiera di Fatima"), false);
@@ -98,7 +106,9 @@ const cana = rosary.buildRosary({
 assert.match(cana.text, /mancare il vino/i);
 assert.match(cana.text, /qualsiasi cosa vi dica, fatela/i);
 assert.equal(cana.scriptureSource, "Dal Vangelo secondo Giovanni");
-assert.equal(cana.scriptureReference, "Gv 2,3.5");
+assert.match(cana.text, /festa di nozze a Cana/i);
+assert.match(cana.text, /Gesù con i suoi discepoli/i);
+assert.equal(cana.scriptureReference, "Gv 2,1-5");
 
 const withIntention = rosary.buildRosary({
   setChoice: "luminous",

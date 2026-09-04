@@ -651,6 +651,15 @@ input:focus-visible {
   border-block: 1px solid rgba(133, 91, 32, 0.15);
 }
 
+.large-bead-card__reading-label {
+  color: var(--rose);
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .large-bead-card__reading small {
   color: var(--gold-dark);
   font-family: var(--sans);

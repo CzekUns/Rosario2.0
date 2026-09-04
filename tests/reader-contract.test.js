@@ -26,6 +26,8 @@ assert.doesNotMatch(app, /className = "bead-code"/);
 assert.match(app, /if \(step\.displayText\)/);
 assert.match(app, /if \(step\.largeBeadCard\)/);
 assert.match(app, /large-bead-card__reading/);
+assert.match(app, /large-bead-card__reading-label/);
+assert.match(app, /Brano del Vangelo/);
 assert.doesNotMatch(html, /id="progressLabel"/);
 assert.doesNotMatch(html, /id="modeLabel"/);
 assert.doesNotMatch(html, /id="durationEstimate"/);

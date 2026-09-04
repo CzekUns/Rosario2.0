@@ -441,11 +441,16 @@ function renderPrayerText(step) {
 
     const reading = document.createElement("span");
     reading.className = "large-bead-card__reading";
+    const readingLabel = document.createElement("span");
+    readingLabel.className = "large-bead-card__reading-label";
+    readingLabel.textContent = step.scriptureSource.startsWith("Dal Vangelo")
+      ? "Brano del Vangelo"
+      : "Brano della Scrittura";
     const source = document.createElement("small");
     source.textContent = `${step.scriptureSource} · ${step.scriptureReference}`;
     const scripture = document.createElement("span");
     scripture.textContent = step.text;
-    reading.append(source, scripture);
+    reading.append(readingLabel, source, scripture);
 
     const ourFather = document.createElement("span");
     ourFather.className = "large-bead-card__prayer";
