@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0a1019">
+  <meta name="description" content="Laboratorio interattivo: rosario tridimensionale da toccare e spostare con una o due dita.">
+  <title>Rosario 3D · Laboratorio tattile</title>
+  <link rel="icon" href="../assets/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="experience">
+    <div id="stage" role="application" aria-label="Rosario 3D. Tocca e trascina i grani oppure usa due dita per esplorare." tabindex="0">
+      <div class="fallback" id="fallback" hidden>
+        <strong>La visualizzazione 3D non è disponibile.</strong>
+        <span>Apri questa pagina con un browser aggiornato e una connessione Internet attiva.</span>
+        <a href="../">Torna al Rosario</a>
+      </div>
+    </div>
+    <div class="top-ui">
+      <div class="header">
+        <a class="back" href="../" aria-label="Torna al Rosario 2.0">‹</a>
+        <div class="brand"><span class="eyebrow">ROSARIO 2.0 / LABORATORIO</span><h1>Rosario <em>3D</em></h1></div>
+        <button class="icon-button" id="toggleUi" type="button" title="Nascondi i controlli" aria-label="Nascondi i controlli">◫</button>
+      </div>
+      <div class="statusbar"><span class="pill"><span class="status-dot"></span> Modello esplorabile</span><span class="pill">59 grani · 5 decine</span></div>
+    </div>
+    <div class="selection-label" id="selectionLabel" role="status" aria-live="polite"><span class="selection-overline">TOCCA UN GRANO</span><strong id="selectedTitle">Ave Maria · 1ª decina</strong><span id="selectedInfo">Trascina per sentire scorrere la corona</span></div>
+    <div class="footer-ui" id="footerUi">
+      <p class="microtitle">UN OGGETTO, NON UN MENU</p>
+      <div class="instruction-grid">
+        <span><b>1 dito sul grano</b><small>afferra e trascina</small></span>
+        <span><b>2 dita sui grani</b><small>muovili insieme</small></span>
+        <span><b>2 dita sullo sfondo</b><small>ruota · ingrandisci</small></span>
+      </div>
+      <div class="control-row">
+        <div class="material-picker" role="group" aria-label="Materiale del rosario">
+          <button class="material active" data-material="wood" aria-pressed="true" title="Legno"><i class="swatch wood"></i><span>Legno</span></button>
+          <button class="material" data-material="ivory" aria-pressed="false" title="Avorio"><i class="swatch ivory"></i><span>Avorio</span></button>
+          <button class="material" data-material="onyx" aria-pressed="false" title="Onice"><i class="swatch onyx"></i><span>Onice</span></button>
+        </div>
+        <button class="reset-button" id="reset" type="button"><span aria-hidden="true">↺</span> Ripristina</button>
+      </div>
+      <p class="fineprint">Prototipo indipendente · Nessuna modifica alla recita attuale</p>
+    </div>
+    <div class="mini-ui" id="miniUi" hidden><button id="showUi" type="button">Mostra comandi</button></div>
+  </main>
+  <script>
+    window.setTimeout(function () {
+      if (!window.__rosario3dReady) document.getElementById("fallback").hidden = false;
+    }, 8000);
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

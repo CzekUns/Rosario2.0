@@ -25,6 +25,7 @@ jobs:
           node --check rosary-atmosphere.js
           node --check pwa.js
           node --check sw.js
+          node --check rosario3d/app.js
       - name: Test rosary sequence and reader interaction
         run: |
           node tests/rosary-data.test.js
@@ -32,3 +33,4 @@ jobs:
           node tests/grip-window-contract.test.js
           node tests/recorded-audio.test.js
           node tests/audio-flow.test.js
+          node tests/rosario3d.test.js
