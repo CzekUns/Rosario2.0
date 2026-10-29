@@ -31,3 +31,4 @@ jobs:
           node tests/reader-contract.test.js
           node tests/grip-window-contract.test.js
           node tests/recorded-audio.test.js
+          node tests/audio-flow.test.js

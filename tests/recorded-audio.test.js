@@ -22,4 +22,14 @@ clips.forEach((name) => {
 const full = data.buildRosary({ setChoice: "joyful", full: true });
 assert.ok(full.steps[0].speechParts.some((part) => part.text === data.prayers.creed));
 assert.equal(full.steps.filter((step) => step.repetition === 10 && step.endOfMystery).length, 5);
+
+// La lettura dei brani lunghi deve essere spezzata: su Android Web Speech può
+// altrimenti arrestarsi senza consegnare l'evento onend.
+assert.match(app, /const MAX_TTS_CHARS = 145/);
+assert.match(app, /speechChunkEnd\(completeText, textOffset\)/);
+assert.match(app, /speakPart\(partIndex, chunkEnd\)/);
+assert.match(app, /audio\.onended = finishClip/);
+assert.match(app, /audio\.duration - 0\.08/);
+assert.match(app, /audio\.play\(\)\.catch\(fallbackToSynthesis\)/);
+
 console.log("Recorded audio contract passed");

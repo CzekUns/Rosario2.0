@@ -87,6 +87,8 @@ let speechStatus = "idle";
 let activeSpeechRun = 0;
 let activeUtterance = null;
 let activeRecordedAudio = null;
+let recordedWatchdog = null;
+let ttsWatchdog = null;
 let continuationTimer = null;
 let speechCheckpoint = null;
 let gripGesture = null;
@@ -96,6 +98,20 @@ let railSyncFrame = null;
 let railHasAligned = false;
 
 const GRIP_THRESHOLD = 34;
+const MAX_TTS_CHARS = 145;
+
+// Segmenti brevi: su alcuni browser mobili la sintesi delle letture bibliche
+// lunghe può interrompersi senza inviare l'evento "end".
+function speechChunkEnd(text, start) {
+  if (text.length - start <= MAX_TTS_CHARS) return text.length;
+  const cutoff = start + MAX_TTS_CHARS;
+  const chunk = text.slice(start, cutoff);
+  const punctuation = Math.max(chunk.lastIndexOf(". "), chunk.lastIndexOf("; "), chunk.lastIndexOf("? "), chunk.lastIndexOf("! "));
+  if (punctuation >= 55) return start + punctuation + 1;
+  const space = chunk.lastIndexOf(" ");
+  return space >= 55 ? start + space : cutoff;
+}
+
 
 function readSavedState() {
   try {
@@ -539,10 +555,17 @@ function renderPrayerText(step) {
 function stopSpeech({ preserveCheckpoint = false } = {}) {
   activeSpeechRun += 1;
   window.clearTimeout(continuationTimer);
+  window.clearTimeout(recordedWatchdog);
+  window.clearTimeout(ttsWatchdog);
   continuationTimer = null;
+  recordedWatchdog = null;
+  ttsWatchdog = null;
   if (activeRecordedAudio) {
     const previous = activeRecordedAudio;
     activeRecordedAudio = null;
+    previous.onended = null;
+    previous.onerror = null;
+    previous.onplaying = null;
     previous.pause();
     previous.removeAttribute("src");
     previous.load();
@@ -557,6 +580,8 @@ function stopSpeech({ preserveCheckpoint = false } = {}) {
 function pauseSpeech() {
   if (speechStatus !== "speaking") return;
   if (activeRecordedAudio) {
+    window.clearTimeout(recordedWatchdog);
+    recordedWatchdog = null;
     activeRecordedAudio.pause();
     speechStatus = "paused";
     elements.prayerText.removeAttribute("data-speaker");
@@ -566,7 +591,9 @@ function pauseSpeech() {
   if (!("speechSynthesis" in window)) return;
   activeSpeechRun += 1;
   window.clearTimeout(continuationTimer);
+  window.clearTimeout(ttsWatchdog);
   continuationTimer = null;
+  ttsWatchdog = null;
   activeUtterance = null;
   speechStatus = "paused";
   window.speechSynthesis.cancel();
@@ -578,10 +605,15 @@ function resumeSpeech() {
   if (speechStatus !== "paused") return;
   if (activeRecordedAudio) {
     const current = activeRecordedAudio;
-    current.play().catch(() => {
+    current.play().then(() => {
+      if (activeRecordedAudio === current) {
+        speechStatus = "speaking";
+        updatePlayerUi();
+      }
+    }).catch(() => {
       if (activeRecordedAudio === current) {
         stopSpeech();
-        updateSpeechStatus("Impossibile riprendere l'audio; tocca Ascolta");
+        updateSpeechStatus("Riproduzione bloccata: tocca Avvia per riprovare");
       }
     });
     return;
@@ -642,7 +674,7 @@ function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } 
     }, pauseDuration);
   }
 
-  function speakPart(partIndex, charIndex = 0, forceSynthesis = false) {
+  function speakPart(partIndex, charIndex = 0, forceSynthesis = false, retryCount = 0) {
     if (runId !== activeSpeechRun) return;
     const part = parts[partIndex];
     if (!part) {
@@ -654,38 +686,83 @@ function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } 
       ? getRecordedClip(parts, partIndex)
       : null;
     if (recordedClip && recordedPlayer) {
-      const audio = recordedPlayer;
+      // Un nuovo elemento per ogni registrazione: gli eventi tardivi del clip
+      // precedente non devono interrompere la preghiera successiva.
+      const audio = new Audio();
+      audio.preload = "auto";
       activeRecordedAudio = audio;
       speechCheckpoint.partIndex = partIndex;
       speechCheckpoint.charIndex = 0;
       audio.src = recordedClip.src;
       audio.playbackRate = Number(state.rate) || 1;
+      let finished = false;
+      let previousPosition = 0;
+      let stalledChecks = 0;
+      const clearWatchdog = () => {
+        window.clearTimeout(recordedWatchdog);
+        recordedWatchdog = null;
+      };
       const fallbackToSynthesis = () => {
-        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio || finished) return;
+        finished = true;
+        clearWatchdog();
         activeRecordedAudio = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplaying = null;
         audio.pause();
         audio.removeAttribute("src");
         audio.load();
         speakPart(partIndex, 0, true);
       };
-      audio.onplaying = () => {
-        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
-        speechStatus = "speaking";
-        elements.prayerText.dataset.speaker = "leader";
-        updatePlayerUi();
-      };
-      audio.onended = () => {
-        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
+      const finishClip = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio || finished) return;
+        finished = true;
+        clearWatchdog();
         activeRecordedAudio = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onplaying = null;
         elements.prayerText.removeAttribute("data-speaker");
         speechCheckpoint.partIndex = partIndex + recordedClip.parts.length;
         speechCheckpoint.charIndex = 0;
         continuationTimer = window.setTimeout(
-          () => speakPart(partIndex + recordedClip.parts.length), 160,
+          () => speakPart(partIndex + recordedClip.parts.length), 130,
         );
       };
+      const checkPlayback = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio || finished
+          || speechStatus === "paused") return;
+        if (audio.ended || (Number.isFinite(audio.duration)
+          && audio.duration > 0 && audio.currentTime >= audio.duration - 0.08)) {
+          finishClip();
+          return;
+        }
+        if (!document.hidden && audio.readyState >= 2 && !audio.paused) {
+          if (audio.currentTime > previousPosition + 0.1) {
+            previousPosition = audio.currentTime;
+            stalledChecks = 0;
+          } else if (++stalledChecks >= 4) {
+            fallbackToSynthesis();
+            return;
+          }
+        }
+        recordedWatchdog = window.setTimeout(checkPlayback, 2400);
+      };
+      audio.onplaying = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio || finished) return;
+        speechStatus = "speaking";
+        elements.prayerText.dataset.speaker = "leader";
+        updatePlayerUi();
+        clearWatchdog();
+        recordedWatchdog = window.setTimeout(checkPlayback, 2400);
+      };
+      audio.onended = finishClip;
       audio.onerror = fallbackToSynthesis;
       audio.play().catch(fallbackToSynthesis);
+      // Se il browser non emette "playing", non lasciare il lettore fermo
+      // indefinitamente: controlla anche l'avvio.
+      if (!recordedWatchdog) recordedWatchdog = window.setTimeout(checkPlayback, 2400);
       return;
     }
     if (!("speechSynthesis" in window)) {
@@ -700,7 +777,8 @@ function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } 
     const remainingText = completeText.slice(charIndex);
     const leadingWhitespace = remainingText.length - remainingText.trimStart().length;
     const textOffset = Math.min(completeText.length, charIndex + leadingWhitespace);
-    const utterance = new SpeechSynthesisUtterance(completeText.slice(textOffset));
+    const chunkEnd = speechChunkEnd(completeText, textOffset);
+    const utterance = new SpeechSynthesisUtterance(completeText.slice(textOffset, chunkEnd));
     const isAssembly = part.speaker === "assembly";
     const guideVoice = getSelectedVoice();
     const selectedVoice = isAssembly ? getResponseVoice() : guideVoice;
@@ -714,34 +792,73 @@ function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } 
     activeUtterance = utterance;
     speechCheckpoint.partIndex = partIndex;
     speechCheckpoint.charIndex = textOffset;
+    const clearTtsWatchdog = () => {
+      window.clearTimeout(ttsWatchdog);
+      ttsWatchdog = null;
+    };
+    const failTts = () => {
+      if (runId !== activeSpeechRun || activeUtterance !== utterance) return;
+      clearTtsWatchdog();
+      activeUtterance = null;
+      elements.prayerText.removeAttribute("data-speaker");
+      // Dopo un errore o un blocco senza onend, riavvia solo il segmento.
+      // Limita i tentativi per non ripetere indefinitamente la preghiera.
+      if (retryCount < 1) {
+        const resumeFrom = speechCheckpoint?.partIndex === partIndex
+          ? speechCheckpoint.charIndex
+          : textOffset;
+        window.speechSynthesis.cancel();
+        continuationTimer = window.setTimeout(
+          () => speakPart(partIndex, resumeFrom, true, retryCount + 1),
+          350,
+        );
+        return;
+      }
+      speechCheckpoint = null;
+      speechStatus = "idle";
+      updatePlayerUi();
+      updateSpeechStatus("Voce interrotta: tocca Avvia per riprendere");
+    };
+    const checkTtsStall = () => {
+      if (runId !== activeSpeechRun || activeUtterance !== utterance) return;
+      if (document.hidden) {
+        ttsWatchdog = window.setTimeout(checkTtsStall, 4500);
+        return;
+      }
+      failTts();
+    };
+    // Tempo di sicurezza ampio: non deve troncare una lettura lenta.
+    ttsWatchdog = window.setTimeout(
+      checkTtsStall,
+      Math.max(23000, 6000 + Math.ceil(utterance.text.length * 270 / (Number(state.rate) || 1))),
+    );
     utterance.onstart = () => {
-      if (runId !== activeSpeechRun) return;
+      if (runId !== activeSpeechRun || activeUtterance !== utterance) return;
       speechStatus = "speaking";
       updatePlayerUi();
       elements.prayerText.dataset.speaker = part.speaker;
     };
     utterance.onboundary = (event) => {
-      if (runId !== activeSpeechRun || !speechCheckpoint) return;
+      if (runId !== activeSpeechRun || activeUtterance !== utterance || !speechCheckpoint) return;
       speechCheckpoint.partIndex = partIndex;
       speechCheckpoint.charIndex = textOffset + event.charIndex;
     };
     utterance.onend = () => {
-      if (runId !== activeSpeechRun) return;
+      if (runId !== activeSpeechRun || activeUtterance !== utterance) return;
+      clearTtsWatchdog();
       activeUtterance = null;
       elements.prayerText.removeAttribute("data-speaker");
-      speechCheckpoint.partIndex = partIndex + 1;
-      speechCheckpoint.charIndex = 0;
-      continuationTimer = window.setTimeout(() => speakPart(partIndex + 1), isAssembly ? 110 : 230);
+      if (chunkEnd < completeText.length) {
+        speechCheckpoint.partIndex = partIndex;
+        speechCheckpoint.charIndex = chunkEnd;
+        continuationTimer = window.setTimeout(() => speakPart(partIndex, chunkEnd), 90);
+      } else {
+        speechCheckpoint.partIndex = partIndex + 1;
+        speechCheckpoint.charIndex = 0;
+        continuationTimer = window.setTimeout(() => speakPart(partIndex + 1), isAssembly ? 110 : 230);
+      }
     };
-    utterance.onerror = (event) => {
-      if (runId !== activeSpeechRun || ["canceled", "interrupted"].includes(event.error)) return;
-      activeUtterance = null;
-      speechCheckpoint = null;
-      elements.prayerText.removeAttribute("data-speaker");
-      speechStatus = "idle";
-      updatePlayerUi();
-      updateSpeechStatus("Tocca Ascolta per riprovare");
-    };
+    utterance.onerror = failTts;
 
     window.speechSynthesis.speak(utterance);
   }
