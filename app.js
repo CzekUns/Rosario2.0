@@ -5,6 +5,24 @@ const STORAGE_KEY = "rosario2.reader.v2";
 const INTERACTION_MODES = ["automatic", "guided", "silent"];
 const data = window.RosaryData;
 
+// Registrazioni WhatsApp originali: la sintesi vocale resta disponibile per i testi mancanti
+// e come alternativa nei browser che non riproducono Ogg/Opus.
+const RECORDED_PRAYERS = Object.freeze([
+  ["creed", "credo.ogg"],
+  ["ourFather", "padre-nostro.ogg"],
+  ["hailMary", "ave-maria.ogg"],
+  ["glory", "gloria.ogg"],
+  ["fatima", "fine-mistero.ogg"],
+].map(([key, filename]) => ({
+  parts: data.prayerParts[key],
+  src: `assets/audio/${filename}`,
+})));
+const recordedPlayer = typeof Audio === "function" ? new Audio() : null;
+const supportsRecordedAudio = Boolean(
+  recordedPlayer?.canPlayType?.('audio/ogg; codecs="opus"'),
+);
+if (recordedPlayer) recordedPlayer.preload = "auto";
+
 const elements = {
   ring: document.querySelector("#rosaryRing"),
   prayerScroll: document.querySelector("#prayerScroll"),
@@ -56,7 +74,7 @@ const state = {
   shortMysteryIndex: Number(savedState?.shortMysteryIndex) || 0,
   currentIndex: 0,
   voiceName: savedState?.voiceName || AUTO_VOICE,
-  rate: ["1.2", "1.5", "1.7"].includes(String(savedState?.rate)) ? String(savedState.rate) : "1.2",
+  rate: ["1.0", "1.2", "1.5"].includes(String(savedState?.rate)) ? String(savedState.rate) : "1.0",
   interactionMode: queryInteractionMode || savedInteractionMode,
   completedAt: shouldRestart ? null : savedState?.completedAt || null,
 };
@@ -68,6 +86,7 @@ let responseVoice = null;
 let speechStatus = "idle";
 let activeSpeechRun = 0;
 let activeUtterance = null;
+let activeRecordedAudio = null;
 let continuationTimer = null;
 let speechCheckpoint = null;
 let gripGesture = null;
@@ -315,7 +334,7 @@ function loadVoices() {
     });
     state.interactionMode = "silent";
     updateUi();
-    updateSpeechStatus("Audio non disponibile · modalità silenziosa");
+    updateSpeechStatus(supportsRecordedAudio ? "Registrazioni disponibili" : "Audio non disponibile · modalità silenziosa");
     return;
   }
 
@@ -367,12 +386,17 @@ function updateSpeechStatus(message = null) {
     elements.speechSupport.title = "Recita silenziosa con avanzamento manuale";
     return;
   }
-  if (!("speechSynthesis" in window)) {
+  if (!("speechSynthesis" in window) && !supportsRecordedAudio) {
     elements.speechSupport.textContent = "Solo testo";
     return;
   }
-  const selectedVoice = getSelectedVoice();
   const modePrefix = state.interactionMode === "automatic" ? "Automatico" : "Gestito da te";
+  if (supportsRecordedAudio) {
+    elements.speechSupport.textContent = `${modePrefix} · voce registrata`;
+    elements.speechSupport.title = "Preghiere registrate; sintesi vocale per letture e preghiere non ancora registrate";
+    return;
+  }
+  const selectedVoice = getSelectedVoice();
   const replyVoice = getResponseVoice();
   elements.speechSupport.textContent = selectedVoice
     ? `${modePrefix} · guida e risposta`
@@ -404,6 +428,15 @@ function getSpeechParts(step) {
     : [{ speaker: "leader", text: step.text }];
 }
 
+function getRecordedClip(parts, partIndex) {
+  if (!supportsRecordedAudio) return null;
+  return RECORDED_PRAYERS.find((clip) =>
+    clip.parts.every((part, offset) =>
+      parts[partIndex + offset]?.text === part.text,
+    ),
+  ) || null;
+}
+
 function renderPrayerText(step) {
   const parts = getSpeechParts(step);
   elements.prayerText.replaceChildren();
@@ -418,6 +451,10 @@ function renderPrayerText(step) {
       sign.className = "large-bead-card__sign";
       sign.textContent = "Segno della Croce...";
       card.appendChild(sign);
+      const creed = document.createElement("span");
+      creed.className = "large-bead-card__sign";
+      creed.textContent = "Credo...";
+      card.appendChild(creed);
     }
 
     if (step.intentionText) {
@@ -480,6 +517,17 @@ function renderPrayerText(step) {
     });
   }
 
+  if (step.endOfMystery) {
+    const ending = document.createElement("span");
+    ending.className = "prayer-part prayer-part--assembly";
+    const label = document.createElement("small");
+    label.textContent = "Alla fine della decina";
+    const text = document.createElement("span");
+    text.textContent = data.prayers.fatima;
+    ending.append(label, text);
+    elements.prayerText.appendChild(ending);
+  }
+
   if (step.scriptureReference) {
     const reference = document.createElement("small");
     reference.className = "scripture-reference";
@@ -492,6 +540,13 @@ function stopSpeech({ preserveCheckpoint = false } = {}) {
   activeSpeechRun += 1;
   window.clearTimeout(continuationTimer);
   continuationTimer = null;
+  if (activeRecordedAudio) {
+    const previous = activeRecordedAudio;
+    activeRecordedAudio = null;
+    previous.pause();
+    previous.removeAttribute("src");
+    previous.load();
+  }
   activeUtterance = null;
   speechStatus = "idle";
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -500,7 +555,15 @@ function stopSpeech({ preserveCheckpoint = false } = {}) {
 }
 
 function pauseSpeech() {
-  if (!("speechSynthesis" in window) || speechStatus !== "speaking") return;
+  if (speechStatus !== "speaking") return;
+  if (activeRecordedAudio) {
+    activeRecordedAudio.pause();
+    speechStatus = "paused";
+    elements.prayerText.removeAttribute("data-speaker");
+    updatePlayerUi();
+    return;
+  }
+  if (!("speechSynthesis" in window)) return;
   activeSpeechRun += 1;
   window.clearTimeout(continuationTimer);
   continuationTimer = null;
@@ -512,7 +575,18 @@ function pauseSpeech() {
 }
 
 function resumeSpeech() {
-  if (!("speechSynthesis" in window) || speechStatus !== "paused") return;
+  if (speechStatus !== "paused") return;
+  if (activeRecordedAudio) {
+    const current = activeRecordedAudio;
+    current.play().catch(() => {
+      if (activeRecordedAudio === current) {
+        stopSpeech();
+        updateSpeechStatus("Impossibile riprendere l'audio; tocca Ascolta");
+      }
+    });
+    return;
+  }
+  if (!("speechSynthesis" in window)) return;
   const checkpoint = speechCheckpoint;
   speakCurrent({
     continueAutomatically: checkpoint?.continueAutomatically
@@ -522,7 +596,7 @@ function resumeSpeech() {
 }
 
 function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } = {}) {
-  if (!("speechSynthesis" in window)) {
+  if (!("speechSynthesis" in window) && !supportsRecordedAudio) {
     updateSpeechStatus("Audio non disponibile");
     return;
   }
@@ -568,11 +642,57 @@ function speakCurrent({ continueAutomatically = true, resumeCheckpoint = null } 
     }, pauseDuration);
   }
 
-  function speakPart(partIndex, charIndex = 0) {
+  function speakPart(partIndex, charIndex = 0, forceSynthesis = false) {
     if (runId !== activeSpeechRun) return;
     const part = parts[partIndex];
     if (!part) {
       finishStep();
+      return;
+    }
+
+    const recordedClip = !forceSynthesis && charIndex === 0
+      ? getRecordedClip(parts, partIndex)
+      : null;
+    if (recordedClip && recordedPlayer) {
+      const audio = recordedPlayer;
+      activeRecordedAudio = audio;
+      speechCheckpoint.partIndex = partIndex;
+      speechCheckpoint.charIndex = 0;
+      audio.src = recordedClip.src;
+      audio.playbackRate = Number(state.rate) || 1;
+      const fallbackToSynthesis = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
+        activeRecordedAudio = null;
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        speakPart(partIndex, 0, true);
+      };
+      audio.onplaying = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
+        speechStatus = "speaking";
+        elements.prayerText.dataset.speaker = "leader";
+        updatePlayerUi();
+      };
+      audio.onended = () => {
+        if (runId !== activeSpeechRun || activeRecordedAudio !== audio) return;
+        activeRecordedAudio = null;
+        elements.prayerText.removeAttribute("data-speaker");
+        speechCheckpoint.partIndex = partIndex + recordedClip.parts.length;
+        speechCheckpoint.charIndex = 0;
+        continuationTimer = window.setTimeout(
+          () => speakPart(partIndex + recordedClip.parts.length), 160,
+        );
+      };
+      audio.onerror = fallbackToSynthesis;
+      audio.play().catch(fallbackToSynthesis);
+      return;
+    }
+    if (!("speechSynthesis" in window)) {
+      speechStatus = "idle";
+      speechCheckpoint = null;
+      updatePlayerUi();
+      updateSpeechStatus("Voce non disponibile per questo testo");
       return;
     }
 
@@ -898,7 +1018,7 @@ elements.voiceSelect.addEventListener("change", () => {
 elements.speechRateButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const nextRate = button.dataset.speechRate;
-    if (!["1.2", "1.5", "1.7"].includes(nextRate) || nextRate === state.rate) return;
+    if (!["1.0", "1.2", "1.5"].includes(nextRate) || nextRate === state.rate) return;
     stopSpeech();
     state.rate = nextRate;
     elements.speechRateButtons.forEach((rateButton) => {

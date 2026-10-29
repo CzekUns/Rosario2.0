@@ -340,7 +340,7 @@
           includeOpeningSign: decadeIndex === 0,
           intentionText: decadeIndex === 0 ? intentionText : "",
           speechParts: freezeSpeechParts([
-            ...(decadeIndex === 0 ? prayerParts.sign : []),
+            ...(decadeIndex === 0 ? [...prayerParts.sign, ...prayerParts.creed] : []),
             ...(decadeIndex === 0 && intentionText
               ? [{ speaker: "leader", text: intentionText }]
               : []),
@@ -368,6 +368,10 @@
               code: `Mis.${mysteryNumber}-${hailNumber}`,
               mysteryNumber,
               repetition: hailNumber,
+              endOfMystery: hailNumber === 10,
+              speechParts: hailNumber === 10
+                ? freezeSpeechParts([...prayerParts.hailMary, ...prayerParts.fatima])
+                : prayerParts.hailMary,
               primaryOnBead: true,
             },
           ),

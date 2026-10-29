@@ -36,7 +36,7 @@ full.steps.filter((step) => step.type === "Mistero").forEach((step, index) => {
   assert.deepEqual(
     step.speechParts.map((part) => part.speaker),
     index === 0
-      ? ["leader", "assembly", "leader", "assembly", "leader", "leader", "leader", "assembly"]
+      ? ["leader", "assembly", "assembly", "leader", "assembly", "leader", "leader", "leader", "assembly"]
       : ["leader", "assembly", "leader", "leader", "leader", "assembly"],
     `${step.title} deve recitare Gloria, Vangelo e Padre Nostro in un unico passaggio`,
   );
@@ -58,6 +58,11 @@ assert.equal(full.steps.some((step) => step.title === "Credo"), false);
 assert.equal(full.steps.some((step) => step.id.startsWith("opening-hail")), false);
 assert.equal(full.steps.some((step) => step.id === "opening-sign"), false);
 assert.equal(full.steps[0].includeOpeningSign, true);
+assert.ok(full.steps[0].speechParts.some((part) => part.text === rosary.prayers.creed));
+full.steps.filter((step) => step.repetition === 10).forEach((step) => {
+  assert.equal(step.endOfMystery, true);
+  assert.ok(step.speechParts.some((part) => part.text === rosary.prayers.fatima));
+});
 
 full.selectedMysteries.forEach((mystery, decadeIndex) => {
   const largeBeadSteps = full.steps

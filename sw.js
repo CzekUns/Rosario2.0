@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "rosario-2-v28-20260904";
+const CACHE_NAME = "rosario-2-v29-20261029";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -16,6 +16,11 @@ const APP_SHELL = [
   "./pwa.js",
   "./manifest.webmanifest",
   "./assets/app-icon.svg",
+  "./assets/audio/credo.ogg",
+  "./assets/audio/padre-nostro.ogg",
+  "./assets/audio/ave-maria.ogg",
+  "./assets/audio/gloria.ogg",
+  "./assets/audio/fine-mistero.ogg",
 ];
 
 self.addEventListener("install", (event) => {

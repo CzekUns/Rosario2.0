@@ -30,3 +30,4 @@ jobs:
           node tests/rosary-data.test.js
           node tests/reader-contract.test.js
           node tests/grip-window-contract.test.js
+          node tests/recorded-audio.test.js

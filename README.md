@@ -11,7 +11,8 @@ Web app statica e installabile per accompagnare la recita del Rosario. Mostra il
 - Avanzamento strettamente sequenziale: il filo non funziona come menu e non consente di saltare preghiere.
 - Codici accanto ai grani nel formato `Mis.5-7`.
 - Tre modalità: audio automatico, audio con avanzamento gestito dall’utente e recita senza audio.
-- Guida tramite Web Speech API con scelta automatica della voce italiana migliore disponibile.
+- Registrazioni Ogg/Opus dal Drive «Rosario App» per Credo, Padre Nostro, Ave Maria, Gloria e preghiera di fine mistero; senza download ripetuti grazie alla cache offline.
+- Guida tramite Web Speech API per introduzione, brani biblici, conclusioni e fallback sui browser senza Ogg/Opus (la compatibilità varia secondo il dispositivo).
 - Ritmo regolabile e pausa/ripresa.
 - Salvataggio locale di avanzamento e preferenze, senza account.
 - Intenzione personale facoltativa, non salvata e letta soltanto su richiesta.
@@ -22,7 +23,8 @@ Web app statica e installabile per accompagnare la recita del Rosario. Mostra il
 - `index.html`: ingresso rapido, misteri del giorno e ripresa della recita.
 - `rosario.html`: lettore del Rosario.
 - `rosary-data.js`: testi, misteri e generazione della sequenza.
-- `app.js`: stato del lettore, grani, persistenza e sintesi vocale.
+- `app.js`: stato del lettore, grani, persistenza, riproduzione di registrazioni e sintesi vocale.
+- `assets/audio/`: cinque registrazioni originali in Ogg/Opus; aggiungere nuovi file e la mappatura in `app.js` per completare l'audio reale.
 - `home.js`: contenuti dinamici della pagina iniziale.
 - `sw.js` e `manifest.webmanifest`: installazione e uso offline.
 - `tests/rosary-data.test.js`: controlli sulla sequenza e sulla mappatura dei grani.
@@ -54,4 +56,4 @@ Il file `render.yaml` configura un sito statico con directory pubblica `.`. Ogni
 - [Vatican.va — I Misteri del Santo Rosario](https://www.vatican.va/special/rosary/documents/misteri.html)
 - [Radio Maria — Come si recita il Santo Rosario](https://radiomaria.it/preghiere/santo-rosario/)
 
-La voce dipende dalle voci italiane installate o rese disponibili dal browser. In futuro il player potrà usare audio registrati mantenendo invariata la sequenza definita in `rosary-data.js`.
+Le registrazioni reali hanno priorità: la voce sintetica interviene per i testi non registrati o se Ogg/Opus non è supportato. Il file «Fine Mistero» è associato alla preghiera di Fatima al termine di ogni decina; verificare che la registrazione corrisponda al testo. La prima visita installa i file nella cache offline della PWA.
