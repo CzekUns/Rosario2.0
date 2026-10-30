@@ -9,7 +9,8 @@ Modellazione Three.js in geometrie tridimensionali, texture di legno/avorio/onic
 - Gravità: ad ogni frame i grani e il crocifisso cadono verso il bordo inferiore, con inerzia e collisioni approssimate.
 - Presa destra: una finestra laterale trattiene elasticamente **cinque grani consecutivi**. Scorrendo, il gruppo di cinque cambia, come se il pollice lasciasse passare il filo.
 - Appoggio sinistro: un singolo grano dell'anello, dalla parte opposta alla presa, è richiamato verso un piccolo anello a sinistra **alla stessa altezza**. Il vincolo elastico è più debole e cede al trascinamento diretto. Il grano associato cambia durante lo scorrimento, mantenendo la corona aperta senza immobilizzarla.
-- Arco superiore: il tratto di anello che unisce il grano alto della presa destra al singolo grano dell'appoggio sinistro segue una **curva alta morbida**, calcolata sulla viewport e campionata per lunghezza. La sua attrazione è inferiore a quella della presa e si annulla vicino agli estremi, così l'utente può deformare la corona trascinando i grani. L'altro ramo dell'anello e la coda non subiscono la guida dell'arco: restano sottoposti alla gravità.
+- Arco superiore: la curva morbida comprende **solo i grani sufficienti a coprire la distanza effettiva tra gli appoggi** (invece di stipare metà anello nell'arco). L'angolo superiore si aggiorna durante lo scorrimento; l'altro ramo e la coda restano sotto gravità.
+- Correzioni stabilità: il percorso che attraversa il grano 54 passa davvero dalla medaglietta 0; si attenua la forza della curva vicino alle dita e si smorzano gli impulsi del solver. Inclusi test geometrici per diverse larghezze di smartphone.
 - Vincoli: pareti dello schermo su ogni grano, non spostamento/zoom di tutta l'immagine.
 - Grandezza naturale *nominale*: grano piccolo circa 9 mm CSS (~34 px), senza zoom o adattamento all'intera corona. La misura fisica esatta richiederebbe calibrazione per dispositivo; è un'approssimazione.
 

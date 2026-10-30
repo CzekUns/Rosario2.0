@@ -26,6 +26,7 @@ jobs:
           node --check pwa.js
           node --check sw.js
           node --check rosario3d/app.js
+          node --check rosario3d/arc-math.mjs
       - name: Test rosary sequence and reader interaction
         run: |
           node tests/rosary-data.test.js

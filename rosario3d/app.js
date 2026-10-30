@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js";
+import {ringArcPath,archPoint,chooseArchSteps} from "./arc-math.mjs";
 
 // Laboratorio indipendente: 54 grani sull'anello (50 Ave Maria + 4 Padre Nostro),
 // medaglia centrale, 5 grani sulla coda (3 Ave Maria + 2 Padre Nostro), crocifisso.
@@ -17,9 +18,9 @@ const CSS_PX_PER_WORLD = (9 * 96 / 25.4) / (.084 * 2);
 const GRAVITY = .0019;
 const GRIP_BEADS = 5;
 const LEFT_GUIDE_STRENGTH = .09; // secondo punto, più debole della presa destra
-const ARC_RISE = 1.13; // arco alto: più morbido della presa, non un binario rigido
-const ARC_PULL = .12;
-const ARC_PULL_LATER = .045;
+const ARC_RISE = .77; // arco alto: più morbido della presa, non un binario rigido
+const ARC_PULL = .085;
+const ARC_PULL_LATER = .028;
 const ARC_TOP_MARGIN = .18;
 const GRIP_PITCH = .215;
 const SCREEN_INSET = .035;
@@ -396,59 +397,30 @@ function updateGripTargets() {
 }
 function guideTarget(slot) {return guidePoints[slot];}
 function gripIndex(slot) { return gripStart+slot; }
-// Sul tratto opposto dell'anello, circa mezza corona rispetto alla presa.
-// Il supporto segue la corona quando i grani scorrono: non è un perno fisso
-// che impedisce la progressione della preghiera.
+// Solo una breve campata superiore, non metà corona.
 function leftGuideIndex() {
-  const reference=Math.min(54,gripStart+2);
-  return ((reference-1+27)%54)+1;
+  return upperArcIndices.at(-1) || 25;
 }
 function leftGuideTarget() {return leftGuidePoint;}
-
-// Si percorre solo l'anello di 54 grani, in entrambi i sensi. La parte
-// che in riposo sta più in alto diventa la campata dell'arco: la parte
-// opposta resta libera di pendere per gravità.
-function ringPath(from,to,direction) {
-  const result=[from];
-  let current=from;
-  for(let i=0;i<54&&current!==to;i++){
-    current=((current-1+direction+54)%54)+1;
-    result.push(current);
-  }
-  return result;
-}
-function topArcIndices() {
-  // La guida può scorrere anche nella coda finale: l'arco rimane ancorato
-  // all'ultimo grano dell'anello, senza includere la croce o la medaglia.
+function topArcIndices(rise) {
   const from=Math.min(54,gripIndex(GRIP_BEADS-1));
-  const to=leftGuideIndex();
-  if(from===to)return [from];
-  const forward=ringPath(from,to,1);
-  const reverse=ringPath(from,to,-1);
-  const meanHeight=path=>path.reduce((sum,i)=>sum+beads[i].rest.y,0)/path.length;
-  return meanHeight(forward)>=meanHeight(reverse)?forward:reverse;
-}
-function pointOnUpperArc(start,end,t,rise) {
-  // La curva è una campata ad arco arrotondata, senza linee rigide.
-  const x=start.x+(end.x-start.x)*t;
-  const y=start.y+(end.y-start.y)*t+rise*Math.sin(Math.PI*t);
-  return new THREE.Vector3(x,y,0);
+  const count=chooseArchSteps(guideTarget(GRIP_BEADS-1),leftGuideTarget(),rise,GRIP_PITCH);
+  // La connessione fra 54 e 1 attraversa davvero la medaglietta 0.
+  return ringArcPath(from,count);
 }
 function updateUpperArc() {
   if(!beads.length||!guidePoints.length)return;
-  upperArcIndices=topArcIndices();
-  const from=upperArcIndices[0];
-  const start=from===gripIndex(GRIP_BEADS-1)
-    ?guideTarget(GRIP_BEADS-1)
-    :beads[from].p;
+  const start=guideTarget(GRIP_BEADS-1);
   const end=leftGuideTarget();
   const availableRise=viewHeight/2-ARC_TOP_MARGIN-Math.max(start.y,end.y);
   const rise=clamp(availableRise,.03,ARC_RISE);
+  upperArcIndices=topArcIndices(rise);
   // Campionamento a lunghezza d'arco: i grani sono distribuiti in modo
   // regolare sul profilo anche dove la curva si inclina molto.
   const samples=96,positions=[],distances=[0];
   for(let i=0;i<=samples;i++){
-    const point=pointOnUpperArc(start,end,i/samples,rise);
+    const p=archPoint(start,end,rise,i/samples);
+    const point=new THREE.Vector3(p.x,p.y,0);
     positions.push(point);
     if(i>0)distances.push(distances.at(-1)+point.distanceTo(positions[i-1]));
   }
@@ -621,8 +593,13 @@ function physics() {
       if(n.grabbedBy.size||held.has(index)||index===secondaryIndex)continue;
       const t=k/(upperArcIndices.length-1);
       const fade=Math.sin(Math.PI*t); // transizione morbida agli appoggi
+      // La campata cede vicino alle dita, senza combattere il tocco.
+      const nearFinger=touches.size && [-2,-1,0,1,2].some(offset=>{
+        const adjacent=upperArcIndices[k+offset];
+        return adjacent!==undefined&&beads[adjacent].grabbedBy.size>0;
+      });
       n.p.lerp(upperArcTargets[k],
-        fade*(iteration===0?ARC_PULL:ARC_PULL_LATER));
+        fade*(nearFinger?.22:1)*(iteration===0?ARC_PULL:ARC_PULL_LATER));
     }
     // Corda inestensibile: il movimento di un grano si propaga ai vicini.
     for(const edge of links){
@@ -643,8 +620,9 @@ function physics() {
       const a=beads[i];
       for(let j=i+2;j<beads.length;j++){
         const b=beads[j];
-        vA.copy(b.p).sub(a.p);
         const minimum=(a.radius||.1)+(b.radius||.1)+.008;
+        if(Math.abs(a.p.x-b.p.x)>minimum || Math.abs(a.p.y-b.p.y)>minimum)continue;
+        vA.copy(b.p).sub(a.p);
         let distance=vA.length();
         if(distance>=minimum)continue;
         if(distance<.00001) {
@@ -665,6 +643,7 @@ function physics() {
   }
   for(const n of beads){
     if(n.grabbedBy.size&&n.target)n.p.lerp(n.target,.4);
+    else n.old.lerp(n.p,.24); // smorza le spinte introdotte dai vincoli
     n.mesh.position.copy(n.p);
   }
 }

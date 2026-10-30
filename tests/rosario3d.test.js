@@ -24,12 +24,14 @@ assert.match(js, /function guideTarget/);
 assert.match(js, /function leftGuideIndex/);
 assert.match(js, /function leftGuideTarget/);
 assert.match(js, /const LEFT_GUIDE_STRENGTH = \.09/);
-assert.match(js, /const ARC_RISE = 1\.13/);
-assert.match(js, /function ringPath/);
+assert.match(js, /const ARC_RISE = \.77/);
 assert.match(js, /function topArcIndices/);
-assert.match(js, /function pointOnUpperArc/);
+assert.match(js, /ringArcPath\(from,count\)/);
+assert.match(js, /chooseArchSteps/);
+assert.match(js, /archPoint/);
 assert.match(js, /function updateUpperArc/);
-assert.match(js, /rise\*Math\.sin\(Math\.PI\*t\)/);
+assert.match(js, /const nearFinger=touches\.size/);
+assert.match(js, /n\.old\.lerp\(n\.p,\.24\)/);
 assert.match(js, /upperArcTargets\[k\]/);
 assert.match(js, /const fade=Math\.sin\(Math\.PI\*t\)/);
 assert.match(js, /secondary\.p\.lerp\(leftGuideTarget\(\)/);
@@ -75,3 +77,24 @@ for(const id of ["reset","toggleUi","showUi","selectionLabel"]) {
 assert.doesNotMatch(js,/window\.location\.href\s*=/);
 assert.doesNotMatch(js,/fetch\(.+api\//);
 console.log("Rosario 3D static contracts passed");
+
+(async function verifyArcGeometry() {
+  const {pathToFileURL}=require("node:url");
+  const arc=await import(pathToFileURL(path.join(root,"arc-math.mjs")).href);
+  assert.deepEqual(arc.ringArcPath(12,10),[12,13,14,15,16,17,18,19,20,21,22]);
+  assert.deepEqual(arc.ringArcPath(50,8),[50,51,52,53,54,0,1,2,3]);
+  assert.deepEqual(arc.ringArcPath(54,1),[54,0,1]);
+  assert.equal(arc.archPoint({x:1,y:0},{x:-1,y:0},.7,0).x,1);
+  assert.equal(arc.archPoint({x:1,y:0},{x:-1,y:0},.7,1).x,-1);
+  assert.ok(Math.abs(arc.archPoint({x:1,y:0},{x:-1,y:0},.7,.5).y-.7)<1e-10);
+  // Arc must fit its bead count on a range of typical phone screen widths.
+  for(const width of [320,360,390,430]) {
+    const start={x:(width-58-width/2)/202,y:.43};
+    const end={x:(38-width/2)/202,y:0};
+    const count=arc.chooseArchSteps(start,end,.77,.215);
+    assert.ok(count>=6 && count<=17,"Invalid bead count on width "+width);
+    assert.ok(Math.abs(count*.215-arc.archLength(start,end,.77))<=.11,
+      "Rope excessively compressed on width "+width);
+  }
+  console.log("Rosario 3D arc geometry tests passed");
+})().catch(err=>{console.error(err);process.exitCode=1;});
