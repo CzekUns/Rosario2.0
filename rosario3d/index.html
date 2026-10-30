@@ -11,7 +11,12 @@
 </head>
 <body>
   <main class="experience">
-    <div id="stage" role="application" aria-label="Rosario 3D. Tocca e trascina i grani oppure usa due dita per esplorare." tabindex="0">
+    <div class="grip-frame" id="gripFrame" aria-hidden="true">
+      <span class="grip-title">PRESA</span>
+      <span class="grip-rail"></span>
+      <span class="grip-bottom">5 GRANI</span>
+    </div>
+    <div id="stage" role="application" aria-label="Rosario 3D a dimensione fissa, con gravità e cinque grani trattenuti da una guida laterale. Trascina un grano o due contemporaneamente." tabindex="0">
       <div class="fallback" id="fallback" hidden>
         <strong>La visualizzazione 3D non è disponibile.</strong>
         <span>Apri questa pagina con un browser aggiornato e una connessione Internet attiva.</span>
@@ -28,11 +33,12 @@
     </div>
     <div class="selection-label" id="selectionLabel" role="status" aria-live="polite"><span class="selection-overline">TOCCA UN GRANO</span><strong id="selectedTitle">Ave Maria · 1ª decina</strong><span id="selectedInfo">Trascina per sentire scorrere la corona</span></div>
     <div class="footer-ui" id="footerUi">
-      <p class="microtitle">UN OGGETTO, NON UN MENU</p>
+      <p class="microtitle">GRAVITÀ + PRESA LATERALE · SCALA FISSA</p>
+      <p class="grip-readout">Grani nella presa <strong id="gripCount">12–16</strong></p>
       <div class="instruction-grid">
         <span><b>1 dito sul grano</b><small>afferra e trascina</small></span>
-        <span><b>2 dita sui grani</b><small>muovili insieme</small></span>
-        <span><b>2 dita sullo sfondo</b><small>ruota · ingrandisci</small></span>
+        <span><b>2 dita sui grani</b><small>tirali separatamente</small></span>
+        <span><b>Scorri sulla presa</b><small>fai passare i grani</small></span>
       </div>
       <div class="control-row">
         <div class="material-picker" role="group" aria-label="Materiale del rosario">
@@ -42,7 +48,7 @@
         </div>
         <button class="reset-button" id="reset" type="button"><span aria-hidden="true">↺</span> Ripristina</button>
       </div>
-      <p class="fineprint">Prototipo indipendente · Nessuna modifica alla recita attuale</p>
+      <p class="fineprint">Grani ~9 mm nominali · senza zoom · laboratorio indipendente</p>
     </div>
     <div class="mini-ui" id="miniUi" hidden><button id="showUi" type="button">Mostra comandi</button></div>
   </main>

@@ -1,34 +1,21 @@
-# Rosario 3D — laboratorio indipendente
+# Rosario 3D — laboratorio gravità e presa laterale
 
-Esperimento frontend in `/rosario3d/`, senza modificare il lettore principale.
+Servito dalla cartella statica `/rosario3d/` su Render, indipendente dal lettore principale.
 
-## Costruzione
+## Modello
+Modellazione Three.js in geometrie tridimensionali, texture di legno/avorio/onice, medaglia, croce e 59 grani (53 piccoli e 6 grandi). Non usa foto piatte.
 
-Modello Three.js creato interamente con geometrie 3D reali e texture procedurali Canvas (legno, avorio, onice), niente fotografie appiattite. Una corona tradizionale contiene **59 grani**:
-- anello con 50 Ave Maria e 4 Padre Nostro separatori
-- medaglia al raccordo
-- coda con 3 Ave Maria e 2 Padre Nostro
-- crocifisso modellato in tre dimensioni
+## Forze e limiti
+- Gravità: ad ogni frame i grani e il crocifisso cadono verso il bordo inferiore, con inerzia e collisioni approssimate.
+- Presa: una finestra laterale trattiene elasticamente **cinque grani consecutivi**. Scorrendo, il gruppo di cinque cambia, come se il pollice lasciasse passare il filo.
+- Vincoli: pareti dello schermo su ogni grano, non spostamento/zoom di tutta l'immagine.
+- Grandezza naturale *nominale*: grano piccolo circa 9 mm CSS (~34 px), senza zoom o adattamento all'intera corona. La misura fisica esatta richiederebbe calibrazione per dispositivo; è un'approssimazione.
 
-La medaglia sostituisce il raccordo fra quinta e prima decina. Corda e grani si muovono insieme, con ritorno elastico.
+## Interazione
+- Tocca e trascina un grano: sposti il grano e tiri i collegamenti.
+- Tocca due grani: due trascinamenti indipendenti.
+- Trascina lo sfondo o la zona di presa verticalmente: fai passare i grani nella finestra, mantenendo la scala invariata.
+- Rotellina su desktop: scorri i grani nella finestra, non ingrandisci.
+- Ripristina ricrea la posa iniziale e la lascia assestare sotto gravità.
 
-## Gesti
-
-- Un dito su un grano: trascina quel grano, che trascina i vicini tramite connessioni elastiche.
-- Due dita su due grani: manipola entrambi.
-- Un dito sullo sfondo: ruota il modello in 3D.
-- Due dita sullo sfondo (o una sullo sfondo e una sul grano): ingrandisci/riduci, ruota sul piano e sposta la corona.
-- Mouse: trascina; rotellina per ingrandire.
-- Pulsanti: materiali, ripristino, visualizzazione senza controlli.
-- Tastiera: frecce per selezionare il grano, Esc o R per ripristinare.
-
-I bordi della viewport limitano lo spostamento e le trasformazioni del modello (la scala viene ridotta se è impossibile contenerlo).
-
-## Hosting e prestazioni
-
-Funziona come file statico su GitHub Pages / Render, senza backend e senza build.
-Three.js 0.186.1 (licenza MIT) è importata da jsDelivr con versione bloccata.
-Al primo caricamento **serve una connessione Internet** per la libreria 3D; non è inclusa nella cache offline della PWA principale.
-Materiali e texture sono generati localmente; i file non vengono caricati da Drive.
-
-Non è ancora la versione definitiva della recita: questo percorso serve per provare l'interazione e raccogliere feedback tattile.
+La simulazione è intenzionalmente sperimentale: la gravità e le collisioni sono approssimate con Verlet e vincoli, non un motore rigid-body completo. Three.js è importata da CDN. Il lettore principale di Rosario resta invariato.

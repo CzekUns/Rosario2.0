@@ -36,3 +36,25 @@ body{touch-action:none}button,a{-webkit-tap-highlight-color:transparent}
 @media(min-width:730px){.footer-ui{max-width:680px;left:50%;transform:translateX(-50%);border-radius:30px 30px 0 0}.selection-label{top:20%}.brand h1{font-size:29px}}
 @media(max-height:630px){.selection-label{top:19%;transform:translateX(-50%) scale(.88)}.instruction-grid{display:none}.fineprint{display:none}.control-row{margin-top:4px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important}}
+
+/* Finestra che trattiene cinque grani. Non intercetta i gesti:
+   i tocchi arrivano direttamente al modello WebGL sottostante. */
+.grip-frame{
+  position:absolute;z-index:1;pointer-events:none;
+  right:max(12px,env(safe-area-inset-right));top:31%;
+  width:88px;height:clamp(188px,30dvh,235px);
+  border:1px solid #ebc88d85;border-radius:46px;
+  background:linear-gradient(90deg,#e2ba6b06,#e6b66f12,#ffffff02);
+  box-shadow:inset 0 0 19px #efc38112,0 0 28px #00000022;
+}
+.grip-frame:before,.grip-frame:after{
+  content:"";position:absolute;left:18px;right:18px;height:1px;
+  background:linear-gradient(90deg,transparent,#f5d39d88,transparent);
+}
+.grip-frame:before{top:17px}.grip-frame:after{bottom:17px}
+.grip-title,.grip-bottom{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;letter-spacing:.15em;color:#e3c697;text-shadow:0 1px 4px #000;white-space:nowrap}
+.grip-title{top:-19px}.grip-bottom{bottom:-20px}
+.grip-rail{position:absolute;left:47%;top:17px;bottom:17px;width:1px;background:linear-gradient(#e8c99725,#dfc08a5a,#e8c99725)}
+.grip-readout{text-align:center;font-size:10px;color:#b5a68c;margin:0 0 6px}
+.grip-readout strong{color:#e7c490;font-variant-numeric:tabular-nums}
+@media(max-height:630px){.grip-frame{top:25%;height:178px}}

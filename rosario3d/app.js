@@ -4,12 +4,19 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.m
 // medaglia centrale, 5 grani sulla coda (3 Ave Maria + 2 Padre Nostro), crocifisso.
 // La medaglia prende il posto del quinto divisore sull'anello: 59 grani totali.
 const stage = document.querySelector("#stage");
+const gripFrame = document.querySelector("#gripFrame");
+const gripCount = document.querySelector("#gripCount");
 const fallback = document.querySelector("#fallback");
 const title = document.querySelector("#selectedTitle");
 const details = document.querySelector("#selectedInfo");
 const materialButtons = [...document.querySelectorAll("[data-material]")];
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Grani piccoli ~9 mm nominali CSS: 34px, non scalabili dall'utente.
+const CSS_PX_PER_WORLD = (9 * 96 / 25.4) / (.084 * 2);
+const GRAVITY = .0019;
+const GRIP_BEADS = 5;
+const GRIP_PITCH = .215;
+const SCREEN_INSET = .035;
 
 let scene, camera, renderer, rosary;
 let beads = [];
@@ -19,7 +26,11 @@ let viewWidth = 4, viewHeight = 9;
 let materialName = "wood";
 let activeMaterial, activeGlowMaterial;
 const touches = new Map();
-let transformStart = null;
+let gripStart = 12;
+let guideMoved = 0;
+let frameLast = 0;
+let frameBounds = null;
+let guidePoints = [];
 const UP = new THREE.Vector3(0, 1, 0);
 const WORLD_Z = new THREE.Vector3(0, 0, 1);
 const vA = new THREE.Vector3();
@@ -241,7 +252,9 @@ function node(kind,p,index,decade=0) {
 function connect(a,b) {
   const mesh=new THREE.Mesh(lineGeometry,rope);
   rosary.add(mesh);
-  links.push({a,b,mesh,restLength:a.rest.distanceTo(b.rest)});
+  links.push({a,b,mesh,restLength:Math.max(
+    a.rest.distanceTo(b.rest),(a.radius||.1)+(b.radius||.1)+.017
+  )});
 }
 function ellipseCurve() {
   const samples=1400,cumulative=[0],points=[];
@@ -291,7 +304,7 @@ function buildRosary() {
      beads.filter(n=>n.kind==="large").length!==6){
     throw new Error("La corona deve contenere 53 Ave Maria e 6 Padre Nostro");
   }
-  rosary.rotation.set(.09,-.10,0);
+  rosary.rotation.set(0,0,0);
 }
 function makeHalo() {
   const cnv=document.createElement("canvas");
@@ -334,37 +347,54 @@ function setSelected(index, vibrate=true) {
   if(vibrate&&navigator.vibrate)navigator.vibrate(8);
 }
 function resize() {
-  if(!renderer||!camera)return;
+  if (!renderer || !camera) return;
   const w=Math.max(stage.clientWidth,1),h=Math.max(stage.clientHeight,1);
-  const aspect=w/h;
-  viewHeight=Math.max(8.25,3.85/aspect);
-  viewWidth=viewHeight*aspect;
-  camera.left=-viewWidth/2;camera.right=viewWidth/2;
+  // Dimensione in pixel CSS costante: nessun adattamento all'intera corona.
+  viewWidth=w/CSS_PX_PER_WORLD;
+  viewHeight=h/CSS_PX_PER_WORLD;
+  camera.left=-viewWidth/2; camera.right=viewWidth/2;
   camera.top=viewHeight/2;camera.bottom=-viewHeight/2;
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
   renderer.setSize(w,h,false);
+  frameBounds=stage.getBoundingClientRect();
+  updateGripTargets();
   constrain();
 }
-function screenNdc(x,y) {
-  const box=stage.getBoundingClientRect();
-  return new THREE.Vector2(
-    clamp((x-box.left)/box.width*2-1,-.92,.92),
-    clamp(1-(y-box.top)/box.height*2,-.92,.92)
-  );
-}
 function worldToLocalOnPlane(x,y) {
-  const ndc=screenNdc(x,y);
-  const point=new THREE.Vector3(ndc.x,ndc.y,-1).unproject(camera);
-  const direction=new THREE.Vector3(0,0,-1);
-  rosary.updateMatrixWorld(true);
-  const planePoint=rosary.localToWorld(new THREE.Vector3(0,0,0));
-  const normal=WORLD_Z.clone().transformDirection(rosary.matrixWorld);
-  const plane=new THREE.Plane().setFromNormalAndCoplanarPoint(normal,planePoint);
-  const ray=new THREE.Ray(point,direction);
-  const hit=new THREE.Vector3();
-  if(!ray.intersectPlane(plane,hit))return null;
-  return rosary.worldToLocal(hit);
+  const bounds=frameBounds||stage.getBoundingClientRect();
+  return new THREE.Vector3(
+    (x-bounds.left-bounds.width/2)/CSS_PX_PER_WORLD,
+    (bounds.top+bounds.height/2-y)/CSS_PX_PER_WORLD, .02);
+}
+function updateGripTargets() {
+  const bounds=frameBounds||stage.getBoundingClientRect();
+  const frame=gripFrame.getBoundingClientRect();
+  const x=frame.left+frame.width*.47;
+  const y=frame.top+frame.height*.53;
+  const px=(x-bounds.left-bounds.width/2)/CSS_PX_PER_WORLD;
+  const py=(bounds.top+bounds.height/2-y)/CSS_PX_PER_WORLD;
+  guidePoints=Array.from({length:GRIP_BEADS},(_,slot)=>
+    new THREE.Vector3(px,py+(slot-2)*GRIP_PITCH,0));
+}
+function guideTarget(slot) {return guidePoints[slot];}
+function gripIndex(slot) { return gripStart+slot; }
+function shiftGrip(direction) {
+  const next=clamp(gripStart+direction,1,55);
+  if(next===gripStart)return false;
+  gripStart=next;
+  gripCount.textContent=`${gripStart}–${gripStart+GRIP_BEADS-1}`;
+  navigator.vibrate?.(6);
+  return true;
+}
+function moveGripByPixels(delta) {
+  guideMoved+=delta;
+  const pitch=GRIP_PITCH*CSS_PX_PER_WORLD;
+  while(Math.abs(guideMoved)>=pitch) {
+    const direction=guideMoved>0?1:-1;
+    if(!shiftGrip(direction)){guideMoved=0;break;}
+    guideMoved-=direction*pitch;
+  }
 }
 function pick(x,y) {
   const box=stage.getBoundingClientRect();
@@ -382,105 +412,51 @@ function pick(x,y) {
   }
   return candidate;
 }
-function beginTwoFingerTransform() {
-  const [a,b]=[...touches.values()];
-  if(!a||!b)return;
-  if(a.bead>=0&&b.bead>=0&&a.bead!==b.bead) {
-    transformStart=null;
-    return;
-  }
-  for(const item of touches.values())item.bead=-1;
-  const dx=b.x-a.x,dy=b.y-a.y;
-  transformStart={
-    length:Math.max(30,Math.hypot(dx,dy)),angle:Math.atan2(dy,dx),
-    midpointX:(a.x+b.x)/2,midpointY:(a.y+b.y)/2,
-    scale:rosary.scale.x,rot:rosary.rotation.z,
-    px:rosary.position.x,py:rosary.position.y,
-  };
-}
 function constrain() {
-  if(!camera||!rosary||!beads.length)return;
-  rosary.updateMatrixWorld(true);
-  function bounds(){
-    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
-    for(const n of beads){
-      const projected=rosary.localToWorld(n.p.clone()).project(camera);
-      const pad=n.kind==="cross"?.075:n.kind==="large"?.04:.025;
-      minX=Math.min(minX,projected.x-pad);maxX=Math.max(maxX,projected.x+pad);
-      minY=Math.min(minY,projected.y-pad);maxY=Math.max(maxY,projected.y+pad);
-    }
-    return {minX,maxX,minY,maxY};
+  // Collisione dei grani con i quattro bordi: NON si scala il modello.
+  const left=-viewWidth/2+SCREEN_INSET, right=viewWidth/2-SCREEN_INSET;
+  const bottom=-viewHeight/2+SCREEN_INSET, top=viewHeight/2-SCREEN_INSET;
+  for(const n of beads) {
+    const r=n.radius||.1;
+    const oldX=n.p.x,oldY=n.p.y;
+    n.p.x=clamp(n.p.x,left+r,right-r);
+    n.p.y=clamp(n.p.y,bottom+r,top-r);
+    if(n.p.x!==oldX)n.old.x=n.p.x+(oldX-n.p.x)*.08;
+    if(n.p.y!==oldY)n.old.y=n.p.y+(oldY-n.p.y)*.08;
+    n.p.z=clamp(n.p.z,-.09,.09);
   }
-  const limit=.945;
-  let box=bounds();
-  const s=Math.min(1,(2*limit)/(box.maxX-box.minX),(2*limit)/(box.maxY-box.minY));
-  if(s<1){
-    rosary.scale.multiplyScalar(s*.998);
-    rosary.updateMatrixWorld(true);
-    box=bounds();
-  }
-  let dx=0,dy=0;
-  if(box.minX< -limit)dx=-limit-box.minX;
-  else if(box.maxX>limit)dx=limit-box.maxX;
-  if(box.minY< -limit)dy=-limit-box.minY;
-  else if(box.maxY>limit)dy=limit-box.maxY;
-  rosary.position.x+=dx*viewWidth/2;
-  rosary.position.y+=dy*viewHeight/2;
-  rosary.updateMatrixWorld(true);
 }
 function handlePointerDown(event) {
   event.preventDefault();
   stage.setPointerCapture(event.pointerId);
   const hit=pick(event.clientX,event.clientY);
-  const record={
-    id:event.pointerId,x:event.clientX,y:event.clientY,
-    lastX:event.clientX,lastY:event.clientY,startX:event.clientX,startY:event.clientY,
-    bead:hit,
+  const frame=gripFrame.getBoundingClientRect();
+  const p={
+    id:event.pointerId,x:event.clientX,y:event.clientY,bead:hit,
+    inGrip:event.clientX>=frame.left&&event.clientX<=frame.right
+      &&event.clientY>=frame.top&&event.clientY<=frame.bottom,
   };
-  touches.set(event.pointerId,record);
+  touches.set(event.pointerId,p);
   if(hit>=0){
     setSelected(hit);
     beads[hit].grabbedBy.add(event.pointerId);
-    beads[hit].target=worldToLocalOnPlane(event.clientX,event.clientY);
-  }
-  if(touches.size===2){
-    beginTwoFingerTransform();
-    if(transformStart)for(const n of beads){n.grabbedBy.clear();n.target=null;}
+    beads[hit].target=worldToLocalOnPlane(p.x,p.y);
   }
 }
 function handlePointerMove(event) {
   const p=touches.get(event.pointerId);
   if(!p)return;
   event.preventDefault();
-  const dx=event.clientX-p.x,dy=event.clientY-p.y;
-  p.lastX=p.x;p.lastY=p.y;p.x=event.clientX;p.y=event.clientY;
-  if(touches.size>=2) {
-    if(transformStart){
-      const [a,b]=[...touches.values()];
-      const ddx=b.x-a.x,ddy=b.y-a.y;
-      const midX=(a.x+b.x)/2,midY=(a.y+b.y)/2;
-      const scale=clamp(transformStart.scale*Math.hypot(ddx,ddy)/transformStart.length,.55,2.0);
-      rosary.scale.setScalar(scale);
-      rosary.rotation.z=transformStart.rot+Math.atan2(ddy,ddx)-transformStart.angle;
-      rosary.position.x=transformStart.px+(midX-transformStart.midpointX)/stage.clientWidth*viewWidth;
-      rosary.position.y=transformStart.py-(midY-transformStart.midpointY)/stage.clientHeight*viewHeight;
-      constrain();
-    } else {
-      for(const item of touches.values()){
-        if(item.bead>=0){
-          const n=beads[item.bead];
-          n.target=worldToLocalOnPlane(item.x,item.y);
-        }
-      }
-    }
-    return;
-  }
-  if(p.bead>=0) {
+  const previousY=p.y;
+  p.x=event.clientX;p.y=event.clientY;
+  if(p.bead>=0){
+    // Due dita su due grani = due vincoli trascinati indipendenti.
     beads[p.bead].target=worldToLocalOnPlane(p.x,p.y);
-  } else {
-    rosary.rotation.y=clamp(rosary.rotation.y+dx*.006,-.82,.82);
-    rosary.rotation.x=clamp(rosary.rotation.x+dy*.005,-.65,.65);
-    constrain();
+    if(p.inGrip&&touches.size===1)moveGripByPixels(p.y-previousY);
+  } else if(touches.size===1 ||
+      (touches.size===2&&[...touches.values()].every(t=>t.bead<0))){
+    // Lo sfondo alimenta la guida, senza trasformazioni/zoom della camera.
+    moveGripByPixels(p.y-previousY);
   }
 }
 function handlePointerUp(event) {
@@ -488,66 +464,102 @@ function handlePointerUp(event) {
   if(!p)return;
   event.preventDefault();
   if(p.bead>=0) {
-    beads[p.bead].grabbedBy.delete(event.pointerId);
-    if(!beads[p.bead].grabbedBy.size)beads[p.bead].target=null;
+    const n=beads[p.bead];
+    n.grabbedBy.delete(event.pointerId);
+    if(!n.grabbedBy.size)n.target=null;
   }
   touches.delete(event.pointerId);
-  if(touches.size===1) {
-    const other=[...touches.values()][0];
-    other.lastX=other.x;other.lastY=other.y;
-    if(other.bead>=0){
-      beads[other.bead].grabbedBy.add(other.id);
-      beads[other.bead].target=worldToLocalOnPlane(other.x,other.y);
-    }
-  }
-  transformStart=null;
+  guideMoved=0;
 }
 function reset() {
-  for(const n of beads){
-    n.p.copy(n.rest);n.old.copy(n.rest);
-    n.target=null;n.grabbedBy.clear();
-  }
+  gripStart=12;
+  guideMoved=0;
+  gripCount.textContent=`${gripStart}–${gripStart+GRIP_BEADS-1}`;
   touches.clear();
   rosary.position.set(0,0,0);
-  rosary.rotation.set(.09,-.10,0);
+  rosary.rotation.set(0,0,0);
   rosary.scale.setScalar(1);
-  setSelected(17,false);
+  updateGripTargets();
+  // Il lato destro dell'anello parte dentro la finestra di presa.
+  const displacement=guideTarget(2).clone().sub(beads[gripStart+2].rest);
+  for(const n of beads){
+    n.p.copy(n.rest).add(displacement);
+    n.old.copy(n.p);
+    n.target=null;
+    n.grabbedBy.clear();
+    n.mesh.position.copy(n.p);
+  }
   constrain();
+  // Assestamento iniziale: gli altri grani ricadono naturalmente.
+  for(let i=0;i<90;i++)physics();
+  setSelected(gripStart+2,false);
 }
 function physics() {
+  // Verlet: ogni grano tende a cadere, il crocifisso pesa di più.
   for(const n of beads){
-    if(n.grabbedBy.size&&n.target){
-      n.old.copy(n.p);n.p.lerp(n.target,.72);
+    if(n.grabbedBy.size&&n.target) {
+      n.old.copy(n.p);
+      n.p.lerp(n.target,.85);
       continue;
     }
-    // Verlet con ritorno morbido alla geometria di riposo e inerzia limitata.
-    vA.copy(n.p).sub(n.old).multiplyScalar(n.kind==="cross"?.78:.82);
+    vA.copy(n.p).sub(n.old).multiplyScalar(.87);
     n.old.copy(n.p);
-    const restoring=n.kind==="medal"?.14:n.kind==="cross"?.020:.025;
-    n.p.add(vA).lerp(n.rest,restoring);
+    n.p.add(vA);
+    n.p.y-=GRAVITY*(n.kind==="cross"?1.65:n.kind==="large"?1.2:1);
   }
-  for(let step=0;step<5;step++){
+  const held=new Set();
+  for(let slot=0;slot<GRIP_BEADS;slot++)held.add(gripIndex(slot));
+  for(let iteration=0;iteration<6;iteration++){
+    // Seconda forza: cinque grani nel riquadro, elasticamente trattenuti.
+    for(let slot=0;slot<GRIP_BEADS;slot++){
+      const n=beads[gripIndex(slot)];
+      if(!n.grabbedBy.size)n.p.lerp(guideTarget(slot),iteration===0?.33:.22);
+    }
+    // Corda inestensibile: il movimento di un grano si propaga ai vicini.
     for(const edge of links){
       const a=edge.a,b=edge.b;
       vA.copy(b.p).sub(a.p);
-      const len=vA.length();
-      if(len<.0001)continue;
-      const strength=(len-edge.restLength)/len;
-      const fixA=a.grabbedBy.size&&a.target;
-      const fixB=b.grabbedBy.size&&b.target;
-      const influenceA=fixA?0:a.kind==="medal"?.13:.5;
-      const influenceB=fixB?0:b.kind==="medal"?.13:.5;
-      const total=influenceA+influenceB;
-      if(!total)continue;
-      a.p.addScaledVector(vA,strength*influenceA/total*.62);
-      b.p.addScaledVector(vA,-strength*influenceB/total*.62);
+      const length=vA.length();
+      if(length<.00001)continue;
+      const factor=(length-edge.restLength)/length;
+      const wa=a.grabbedBy.size?0:held.has(a.index)?.12:1;
+      const wb=b.grabbedBy.size?0:held.has(b.index)?.12:1;
+      const total=wa+wb;
+      if(total<.001)continue;
+      a.p.addScaledVector(vA,factor*wa/total*.79);
+      b.p.addScaledVector(vA,-factor*wb/total*.79);
     }
+    // Volume solido dei grani: non attraversano il mucchio in basso.
+    for(let i=0;i<beads.length;i++){
+      const a=beads[i];
+      for(let j=i+2;j<beads.length;j++){
+        const b=beads[j];
+        vA.copy(b.p).sub(a.p);
+        const minimum=(a.radius||.1)+(b.radius||.1)+.008;
+        let distance=vA.length();
+        if(distance>=minimum)continue;
+        if(distance<.00001) {
+          // Due grani sovrapposti devono comunque separarsi.
+          vA.set((j%2 ? 1 : -1)*.008,.003,0);
+          distance=vA.length();
+        }
+        const overlap=(minimum-distance)/distance*.40;
+        const wa=a.grabbedBy.size?0:held.has(a.index)?.15:1;
+        const wb=b.grabbedBy.size?0:held.has(b.index)?.15:1;
+        const total=wa+wb;
+        if(!total)continue;
+        a.p.addScaledVector(vA,-overlap*wa/total);
+        b.p.addScaledVector(vA,overlap*wb/total);
+      }
+    }
+    constrain();
   }
   for(const n of beads){
-    if(n.grabbedBy.size&&n.target)n.p.lerp(n.target,.5);
+    if(n.grabbedBy.size&&n.target)n.p.lerp(n.target,.4);
     n.mesh.position.copy(n.p);
   }
 }
+
 function updateLinks() {
   for(const edge of links){
     vA.copy(edge.b.p).sub(edge.a.p);
@@ -559,21 +571,22 @@ function updateLinks() {
 }
 function animate() {
   requestAnimationFrame(animate);
-  if(!reduceMotion || touches.size)physics();
+  const now=performance.now();
+  const steps=Math.min(3,Math.max(1,Math.round((now-frameLast)/16.67)||1));
+  frameLast=now;
+  for(let i=0;i<steps;i++)physics();
   updateLinks();
   rosary.updateMatrixWorld(true);
   const bead=beads[selected];
-  if(bead&&selectedLamp&&selectedHalo){
-    const pos=rosary.localToWorld(bead.p.clone());
-    selectedHalo.position.copy(pos);
+  if(bead&&selectedLamp&&selectedHalo) {
+    const position=rosary.localToWorld(bead.p.clone());
+    selectedHalo.position.copy(position);
     selectedHalo.position.z+=.14;
-    selectedLamp.position.copy(pos);
+    selectedLamp.position.copy(position);
     selectedLamp.position.z+=.38;
-    const time=performance.now()*.001;
-    const scale=(bead.kind==="large"?.66:.50)*(1+.07*Math.sin(time*2.8));
-    selectedHalo.scale.set(scale,scale,1);
+    const radius=bead.kind==="large"?.66:.5;
+    selectedHalo.scale.set(radius,radius,1);
   }
-  if(++frameNumber % 3 === 0)constrain();
   renderer.render(scene,camera);
 }
 function setup() {
@@ -606,8 +619,8 @@ function setup() {
     if(textures[preference])materialName=preference;
   } catch{}
   setMaterial(materialName);
-  setSelected(17,false);
   resize();
+  reset();
   stage.addEventListener("pointerdown",handlePointerDown);
   stage.addEventListener("pointermove",handlePointerMove);
   stage.addEventListener("pointerup",handlePointerUp);
@@ -616,11 +629,13 @@ function setup() {
   stage.addEventListener("contextmenu",e=>e.preventDefault());
   stage.addEventListener("wheel",e=>{
     e.preventDefault();
-    rosary.scale.multiplyScalar(e.deltaY<0?1.075:.93);
-    constrain();
+    shiftGrip(Math.sign(e.deltaY));
   },{passive:false});
+
   stage.addEventListener("keydown",e=>{
     if(e.key==="Escape"||e.key==="r"||e.key==="R")reset();
+    else if(e.key==="ArrowDown")shiftGrip(1);
+    else if(e.key==="ArrowUp")shiftGrip(-1);
     else if(e.key==="ArrowRight")setSelected(clamp(selected+1,1,59));
     else if(e.key==="ArrowLeft")setSelected(clamp(selected-1,1,59));
   });
