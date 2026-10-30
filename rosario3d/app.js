@@ -5,6 +5,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.m
 // La medaglia prende il posto del quinto divisore sull'anello: 59 grani totali.
 const stage = document.querySelector("#stage");
 const gripFrame = document.querySelector("#gripFrame");
+const guidePointLeft = document.querySelector("#guidePointLeft");
 const gripCount = document.querySelector("#gripCount");
 const fallback = document.querySelector("#fallback");
 const title = document.querySelector("#selectedTitle");
@@ -15,6 +16,7 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 const CSS_PX_PER_WORLD = (9 * 96 / 25.4) / (.084 * 2);
 const GRAVITY = .0019;
 const GRIP_BEADS = 5;
+const LEFT_GUIDE_STRENGTH = .09; // secondo punto, più debole della presa destra
 const GRIP_PITCH = .215;
 const SCREEN_INSET = .035;
 
@@ -31,6 +33,7 @@ let guideMoved = 0;
 let frameLast = 0;
 let frameBounds = null;
 let guidePoints = [];
+let leftGuidePoint = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 const WORLD_Z = new THREE.Vector3(0, 0, 1);
 const vA = new THREE.Vector3();
@@ -376,9 +379,24 @@ function updateGripTargets() {
   const py=(bounds.top+bounds.height/2-y)/CSS_PX_PER_WORLD;
   guidePoints=Array.from({length:GRIP_BEADS},(_,slot)=>
     new THREE.Vector3(px,py+(slot-2)*GRIP_PITCH,0));
+  // Il punto fisico a sinistra è allineato al centro del riquadro destro.
+  const leftBox=guidePointLeft.getBoundingClientRect();
+  const supportX=leftBox.left+leftBox.width/2;
+  leftGuidePoint.set(
+    (supportX-bounds.left-bounds.width/2)/CSS_PX_PER_WORLD,
+    py, 0
+  );
 }
 function guideTarget(slot) {return guidePoints[slot];}
 function gripIndex(slot) { return gripStart+slot; }
+// Sul tratto opposto dell'anello, circa mezza corona rispetto alla presa.
+// Il supporto segue la corona quando i grani scorrono: non è un perno fisso
+// che impedisce la progressione della preghiera.
+function leftGuideIndex() {
+  const reference=Math.min(54,gripStart+2);
+  return ((reference-1+27)%54)+1;
+}
+function leftGuideTarget() {return leftGuidePoint;}
 function shiftGrip(direction) {
   const next=clamp(gripStart+direction,1,55);
   if(next===gripStart)return false;
@@ -509,11 +527,18 @@ function physics() {
   }
   const held=new Set();
   for(let slot=0;slot<GRIP_BEADS;slot++)held.add(gripIndex(slot));
+  const secondaryIndex=leftGuideIndex();
   for(let iteration=0;iteration<6;iteration++){
     // Seconda forza: cinque grani nel riquadro, elasticamente trattenuti.
     for(let slot=0;slot<GRIP_BEADS;slot++){
       const n=beads[gripIndex(slot)];
       if(!n.grabbedBy.size)n.p.lerp(guideTarget(slot),iteration===0?.33:.22);
+    }
+    // Un solo grano sul lato opposto: sostegno più debole della presa.
+    // Se viene afferrato, il dito prevale sull'attrazione del punto.
+    const secondary=beads[secondaryIndex];
+    if(secondary && !secondary.grabbedBy.size) {
+      secondary.p.lerp(leftGuideTarget(),iteration===0?LEFT_GUIDE_STRENGTH:.035);
     }
     // Corda inestensibile: il movimento di un grano si propaga ai vicini.
     for(const edge of links){
@@ -522,8 +547,8 @@ function physics() {
       const length=vA.length();
       if(length<.00001)continue;
       const factor=(length-edge.restLength)/length;
-      const wa=a.grabbedBy.size?0:held.has(a.index)?.12:1;
-      const wb=b.grabbedBy.size?0:held.has(b.index)?.12:1;
+      const wa=a.grabbedBy.size?0:held.has(a.index)?.12:a.index===secondaryIndex?.38:1;
+      const wb=b.grabbedBy.size?0:held.has(b.index)?.12:b.index===secondaryIndex?.38:1;
       const total=wa+wb;
       if(total<.001)continue;
       a.p.addScaledVector(vA,factor*wa/total*.79);
@@ -544,8 +569,8 @@ function physics() {
           distance=vA.length();
         }
         const overlap=(minimum-distance)/distance*.40;
-        const wa=a.grabbedBy.size?0:held.has(a.index)?.15:1;
-        const wb=b.grabbedBy.size?0:held.has(b.index)?.15:1;
+        const wa=a.grabbedBy.size?0:held.has(a.index)?.15:a.index===secondaryIndex?.38:1;
+        const wb=b.grabbedBy.size?0:held.has(b.index)?.15:b.index===secondaryIndex?.38:1;
         const total=wa+wb;
         if(!total)continue;
         a.p.addScaledVector(vA,-overlap*wa/total);

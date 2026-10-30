@@ -7,7 +7,8 @@ Modellazione Three.js in geometrie tridimensionali, texture di legno/avorio/onic
 
 ## Forze e limiti
 - Gravità: ad ogni frame i grani e il crocifisso cadono verso il bordo inferiore, con inerzia e collisioni approssimate.
-- Presa: una finestra laterale trattiene elasticamente **cinque grani consecutivi**. Scorrendo, il gruppo di cinque cambia, come se il pollice lasciasse passare il filo.
+- Presa destra: una finestra laterale trattiene elasticamente **cinque grani consecutivi**. Scorrendo, il gruppo di cinque cambia, come se il pollice lasciasse passare il filo.
+- Appoggio sinistro: un singolo grano dell'anello, dalla parte opposta alla presa, è richiamato verso un piccolo anello a sinistra **alla stessa altezza**. Il vincolo elastico è più debole e cede al trascinamento diretto. Il grano associato cambia durante lo scorrimento, mantenendo la corona aperta senza immobilizzarla.
 - Vincoli: pareti dello schermo su ogni grano, non spostamento/zoom di tutta l'immagine.
 - Grandezza naturale *nominale*: grano piccolo circa 9 mm CSS (~34 px), senza zoom o adattamento all'intera corona. La misura fisica esatta richiederebbe calibrazione per dispositivo; è un'approssimazione.
 
